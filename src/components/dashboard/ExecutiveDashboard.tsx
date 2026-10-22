@@ -145,19 +145,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Executive Welcome & Context Header */}
-      <div
-        className="card"
-        style={{
-          background: 'linear-gradient(135deg, #0056B3 0%, #002D5E 100%)',
-          color: '#FFFFFF',
-          padding: '22px 24px',
-          border: 'none',
-          boxShadow: 'var(--shadow-lg)',
-        }}
-      >
+      <div className="card dashboard-hero">
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <div style={{ flex: '1 1 300px', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
               <span
                 style={{
                   backgroundColor: 'var(--mobitel-lime)',
@@ -171,49 +162,32 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               >
                 EXECUTIVE COCKPIT
               </span>
-              <span style={{ fontSize: '0.8rem', color: '#BAE6FD', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.78rem', color: '#BAE6FD', fontWeight: 600 }}>
                 Mr. Kanishka (IBT) | SLT-MOBITEL Infrastructure
               </span>
             </div>
-            <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#FFFFFF' }}>
+            <h2 className="dashboard-hero-title">
               Field & Central Stock Control Center
             </h2>
-            <p style={{ fontSize: '0.85rem', color: '#E0F2FE', marginTop: 4, maxWidth: 650 }}>
+            <p style={{ fontSize: '0.82rem', color: '#E0F2FE', marginTop: 4, maxWidth: 650, lineHeight: 1.4 }}>
               Live visibility into prime and return stock ledgers across <strong>New Connection</strong> and <strong>Rehabilitation</strong>.
-              Automated ledger tracking with full traceability from main branch dispatch to customer premise.
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="dashboard-hero-actions">
             <button
               onClick={handleExportCSV}
-              className="btn btn-outline"
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                color: '#FFFFFF',
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-                padding: '8px 14px',
-                minHeight: 40,
-                fontSize: '0.85rem',
-              }}
+              className="dashboard-hero-btn"
             >
-              <Download size={16} />
+              <Download size={15} />
               <span>Export CSV</span>
             </button>
 
             <button
               onClick={handlePrint}
-              className="btn btn-outline"
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                color: '#FFFFFF',
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-                padding: '8px 14px',
-                minHeight: 40,
-                fontSize: '0.85rem',
-              }}
+              className="dashboard-hero-btn"
             >
-              <Printer size={16} />
+              <Printer size={15} />
               <span>Print Report</span>
             </button>
           </div>
@@ -221,13 +195,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
       </div>
 
       {/* KPI Stat Cards: 5 Sub-Categories (PRD Section 3) */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 14,
-        }}
-      >
+      <div className="dashboard-kpi-grid">
         {/* TCOPNC */}
         <div
           className="card"
@@ -602,7 +570,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               value={selectedSubCategory}
               onChange={(e) => setSelectedSubCategory(e.target.value as any)}
               className="input-field"
-              style={{ width: 'auto', minHeight: 38, fontSize: '0.8rem', fontWeight: 600 }}
+              style={{ flex: '1 1 180px', minWidth: 0, minHeight: 38, fontSize: '0.8rem', fontWeight: 600 }}
             >
               <option value="ALL">All Categories (5)</option>
               <option value="TCOPNC">TCOPNC - Standard New Connection</option>
@@ -613,22 +581,22 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
             </select>
 
             {/* Keyword Search */}
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', flex: '1 1 180px', minWidth: 0 }}>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter by SKU, description..."
                 className="input-field"
-                style={{ width: 190, minHeight: 38, paddingLeft: 32, fontSize: '0.8rem' }}
+                style={{ width: '100%', minHeight: 38, paddingLeft: 32, fontSize: '0.8rem', boxSizing: 'border-box' }}
               />
               <Search size={15} style={{ position: 'absolute', left: 10, top: 12, color: 'var(--text-muted)' }} />
             </div>
           </div>
         </div>
 
-        {/* Table Container */}
-        <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+        {/* Table Container for Desktop Screens (>= 768px) */}
+        <div className="table-container desktop-inventory-table" style={{ border: 'none', borderRadius: 0 }}>
           <table className="data-table">
             <thead>
               <tr>
@@ -784,6 +752,129 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Inventory Cards View (< 768px) */}
+        <div className="mobile-inventory-cards">
+          {filteredInventory.map((item) => {
+            const meta = SUB_CATEGORY_METADATA[item.subCategory];
+            const isLow = item.minThreshold > 0 && item.quantity <= item.minThreshold;
+
+            return (
+              <div key={`m-${item.id}`} className="mobile-item-card">
+                <div className="mobile-item-header">
+                  <span
+                    className="code-tag"
+                    style={{
+                      backgroundColor: `${meta?.badgeColor}15`,
+                      color: meta?.badgeColor || 'var(--slt-deep-blue)',
+                      borderColor: `${meta?.badgeColor}40`,
+                    }}
+                  >
+                    {item.subCategory}
+                  </span>
+                  <strong style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: 'var(--slt-deep-blue)' }}>
+                    {item.materialCode}
+                  </strong>
+                  <span className="code-tag" style={{ fontSize: '0.7rem' }}>
+                    {item.binLocation || 'BIN-01'}
+                  </span>
+                </div>
+
+                <div className="mobile-item-body">
+                  <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: 1.35 }}>
+                    {item.description}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    Updated: {item.lastUpdated}
+                  </div>
+                </div>
+
+                <div className="mobile-item-stats">
+                  <div>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block' }}>Stock On Hand</span>
+                    <strong style={{ fontSize: '1.15rem', color: isLow ? 'var(--status-danger)' : 'var(--text-primary)' }}>
+                      {item.quantity.toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{item.unit}</span>
+                    </strong>
+                    {isLow && (
+                      <span style={{ fontSize: '0.65rem', color: 'var(--status-danger)', fontWeight: 700, display: 'block' }}>
+                        ⚠️ Low Stock Alert
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    {item.isSerialized ? (
+                      <span
+                        style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          color: 'var(--slt-deep-blue)',
+                          backgroundColor: 'var(--slt-deep-blue-light)',
+                          padding: '3px 8px',
+                          borderRadius: 4,
+                        }}
+                      >
+                        S/N ({item.serialNumbers?.length || 0})
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        Bulk Non-Serialized
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mobile-item-actions">
+                  {onEditProduct && (
+                    <button
+                      type="button"
+                      onClick={() => onEditProduct(item)}
+                      className="btn btn-outline"
+                      style={{ minHeight: 30, padding: '3px 8px', fontSize: '0.75rem', gap: 4 }}
+                    >
+                      <Edit2 size={12} />
+                      <span>Edit</span>
+                    </button>
+                  )}
+                  {onTransferProduct && (
+                    <button
+                      type="button"
+                      onClick={() => onTransferProduct(item)}
+                      className="btn btn-outline"
+                      style={{ minHeight: 30, padding: '3px 8px', fontSize: '0.75rem', gap: 4, color: '#0284C7' }}
+                    >
+                      <ArrowRightLeft size={12} />
+                      <span>Transfer</span>
+                    </button>
+                  )}
+                  {onDeleteProduct && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteProduct(item)}
+                      className="btn btn-outline"
+                      style={{ minHeight: 30, padding: '3px 8px', fontSize: '0.75rem', gap: 4, color: '#DC2626', borderColor: '#FCA5A5' }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (item.subCategory === 'TCOPNC') onNavigateTab('new_connection');
+                      else if (item.subCategory === 'TC-OPCDR') onNavigateTab('rehab');
+                      else if (item.subCategory === 'TCOPNC-C') onNavigateTab('collective');
+                      else onNavigateTab('returns');
+                    }}
+                    className="btn btn-primary"
+                    style={{ minHeight: 30, padding: '3px 10px', fontSize: '0.75rem', gap: 3 }}
+                  >
+                    <span>Transact</span>
+                    <ChevronRight size={12} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

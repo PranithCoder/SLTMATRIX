@@ -37,44 +37,45 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="slt-pill-blue">SLT</span>
             <span className="slt-pill-green">MOBITEL</span>
           </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <h1 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--slt-deep-blue)' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <h1 className="brand-title-text" style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--slt-deep-blue)', margin: 0, whiteSpace: 'nowrap' }}>
                 SLT MatriX
               </h1>
               <span style={{
                 background: 'var(--mobitel-lime-light)',
                 color: 'var(--mobitel-lime-dark)',
-                fontSize: '0.68rem',
+                fontSize: '0.65rem',
                 fontWeight: 800,
-                padding: '2px 6px',
+                padding: '2px 5px',
                 borderRadius: 4,
-                border: '1px solid #C4E9BB'
+                border: '1px solid #C4E9BB',
+                whiteSpace: 'nowrap',
               }}>
                 v1.0 PRD
               </span>
             </div>
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+            <p className="brand-subtitle-text" style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 500, margin: 0 }}>
               Field & Warehouse Inventory Management
             </p>
           </div>
         </div>
 
         {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="slt-header-actions">
           {/* Quick Barcode Scanner Button */}
           <button
             onClick={onOpenScanner}
-            className="btn btn-primary"
+            className="btn btn-primary header-scan-btn"
             style={{
-              padding: '6px 14px',
-              minHeight: 38,
-              fontSize: '0.85rem',
-              gap: 6,
+              padding: '6px 12px',
+              minHeight: 36,
+              fontSize: '0.82rem',
+              gap: 5,
             }}
             title="Open Camera Barcode & QR Scanner"
           >
-            <QrCode size={18} />
+            <QrCode size={17} />
             <span>Scan</span>
           </button>
 
@@ -87,16 +88,19 @@ export const Header: React.FC<HeaderProps> = ({
                 if (selected) onSelectUser(selected);
               }}
               aria-label="Active Operator Profile"
+              className="header-user-select"
               style={{
-                height: 38,
-                padding: '0 10px',
+                height: 36,
+                padding: '0 8px',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-color)',
                 backgroundColor: '#FFFFFF',
                 color: 'var(--text-primary)',
-                fontSize: '0.8rem',
+                fontSize: '0.78rem',
                 fontWeight: 600,
                 cursor: 'pointer',
+                maxWidth: 135,
+                textOverflow: 'ellipsis',
               }}
             >
               {INITIAL_USERS.map((u) => (
@@ -110,18 +114,18 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Connectivity / Offline Simulator Toggle */}
           <button
             onClick={onToggleOfflineSim}
-            className={`status-pill ${isOffline ? 'offline' : 'online'}`}
+            className={`status-pill header-status-pill ${isOffline ? 'offline' : 'online'}`}
             style={{
               border: 'none',
               cursor: 'pointer',
               height: 34,
-              padding: '0 10px',
+              padding: '0 8px',
               transition: 'all 0.15s ease',
             }}
             title={isOffline ? 'Offline Mode Active. Click to simulate reconnect.' : 'Online (Click to simulate field offline mode)'}
           >
             {isOffline ? <WifiOff size={14} /> : <Wifi size={14} />}
-            <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>
               {isOffline ? 'OFFLINE' : 'ONLINE'}
             </span>
           </button>
@@ -130,19 +134,19 @@ export const Header: React.FC<HeaderProps> = ({
           {queuedCount > 0 && (
             <button
               onClick={onManualSync}
-              className="status-pill queued"
+              className="status-pill queued header-status-pill"
               style={{
                 border: 'none',
                 cursor: 'pointer',
                 height: 34,
-                padding: '0 10px',
+                padding: '0 8px',
                 animation: 'pulse 2s infinite',
               }}
               title="Transactions cached locally. Click to sync immediately."
             >
-              <RefreshCw size={13} style={{ animation: 'spin 3s linear infinite' }} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>
-                {queuedCount} Queued
+              <RefreshCw size={12} style={{ animation: 'spin 3s linear infinite' }} />
+              <span style={{ fontSize: '0.72rem', fontWeight: 800 }}>
+                {queuedCount}
               </span>
             </button>
           )}
@@ -150,11 +154,11 @@ export const Header: React.FC<HeaderProps> = ({
           {/* High Contrast / Sunlight Toggle */}
           <button
             onClick={onToggleHighContrast}
-            className="btn btn-outline"
+            className="btn btn-outline header-sun-btn"
             style={{
-              width: 38,
-              height: 38,
-              minHeight: 38,
+              width: 36,
+              height: 36,
+              minHeight: 36,
               padding: 0,
               borderRadius: 'var(--radius-md)',
               backgroundColor: isHighContrast ? '#000000' : '#FFFFFF',
@@ -162,20 +166,20 @@ export const Header: React.FC<HeaderProps> = ({
             }}
             title={isHighContrast ? 'Disable Outdoor Sunlight Mode' : 'Enable High-Contrast Outdoor Sunlight Mode'}
           >
-            <Sun size={18} />
+            <Sun size={17} />
           </button>
 
           {/* Secure Logout Button */}
           {onLogout && (
             <button
               onClick={onLogout}
-              className="btn btn-outline"
+              className="btn btn-outline header-logout-btn"
               style={{
-                height: 38,
-                minHeight: 38,
-                padding: '0 10px',
-                fontSize: '0.8rem',
-                gap: 5,
+                height: 36,
+                minHeight: 36,
+                padding: '0 8px',
+                fontSize: '0.78rem',
+                gap: 4,
                 color: '#DC2626',
                 borderColor: '#FCA5A5',
                 backgroundColor: '#FEF2F2',
@@ -183,7 +187,7 @@ export const Header: React.FC<HeaderProps> = ({
               }}
               title="Sign out of SLT MatriX"
             >
-              <LogOut size={16} />
+              <LogOut size={15} />
               <span>Logout</span>
             </button>
           )}
