@@ -1,0 +1,4179 @@
+// <define:import.meta.env>
+var define_import_meta_env_default = { VITE_FIREBASE_API_KEY: "AIzaSyDVfGttgp9uQogKTDBYzUknokJoXH-NZcs", VITE_FIREBASE_AUTH_DOMAIN: "slt-matrix.firebaseapp.com", VITE_FIREBASE_PROJECT_ID: "slt-matrix", VITE_FIREBASE_STORAGE_BUCKET: "slt-matrix.firebasestorage.app", VITE_FIREBASE_MESSAGING_SENDER_ID: "596272385139", VITE_FIREBASE_APP_ID: "1:596272385139:web:70df813556016361632e06", VITE_FIREBASE_MEASUREMENT_ID: "G-ZJS6SW6MM5" };
+
+// scripts/seedRunner.ts
+import { initializeApp as initializeApp2 } from "firebase/app";
+import { initializeFirestore as initializeFirestore2, writeBatch as writeBatch2, doc as doc3 } from "firebase/firestore";
+
+// src/firebase.ts
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import {
+  initializeFirestore,
+  collection,
+  getDocs,
+  addDoc,
+  doc,
+  setDoc,
+  getDoc,
+  deleteDoc
+} from "firebase/firestore";
+var firebaseConfig = {
+  apiKey: define_import_meta_env_default.VITE_FIREBASE_API_KEY,
+  authDomain: define_import_meta_env_default.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: define_import_meta_env_default.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: define_import_meta_env_default.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: define_import_meta_env_default.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: define_import_meta_env_default.VITE_FIREBASE_APP_ID,
+  measurementId: define_import_meta_env_default.VITE_FIREBASE_MEASUREMENT_ID
+};
+var app = initializeApp(firebaseConfig);
+var analytics = typeof window !== "undefined" ? getAnalytics(app) : null;
+var db = initializeFirestore(app, {
+  ignoreUndefinedProperties: true
+});
+
+// src/services/firestoreService.ts
+import {
+  collection as collection2,
+  doc as doc2,
+  setDoc as setDoc2,
+  getDocs as getDocs2,
+  writeBatch,
+  deleteDoc as deleteDoc2
+} from "firebase/firestore";
+var COLLECTIONS = {
+  INVENTORY: "inventory",
+  LEDGER: "ledger",
+  CUSTOMER_ISSUANCES: "customerIssuances",
+  TRANSFERS: "transfers"
+};
+var BATCH_SIZE = 400;
+var cleanDoc = (obj) => JSON.parse(JSON.stringify(obj));
+var pushInventoryToFirestore = async (items) => {
+  if (!items || items.length === 0) return;
+  for (let i = 0; i < items.length; i += BATCH_SIZE) {
+    const chunk = items.slice(i, i + BATCH_SIZE);
+    const batch = writeBatch(db);
+    for (const item of chunk) {
+      const docRef = doc2(db, COLLECTIONS.INVENTORY, item.id);
+      batch.set(docRef, cleanDoc(item));
+    }
+    await batch.commit();
+  }
+  console.log(`[Firestore] Pushed ${items.length} inventory items.`);
+};
+var pushLedgerToFirestore = async (transactions) => {
+  if (!transactions || transactions.length === 0) return;
+  for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
+    const chunk = transactions.slice(i, i + BATCH_SIZE);
+    const batch = writeBatch(db);
+    for (const tx of chunk) {
+      const docRef = doc2(db, COLLECTIONS.LEDGER, tx.id);
+      batch.set(docRef, cleanDoc(tx));
+    }
+    await batch.commit();
+  }
+  console.log(`[Firestore] Pushed ${transactions.length} ledger transactions.`);
+};
+var pushIssuancesToFirestore = async (issuances) => {
+  if (!issuances || issuances.length === 0) return;
+  for (let i = 0; i < issuances.length; i += BATCH_SIZE) {
+    const chunk = issuances.slice(i, i + BATCH_SIZE);
+    const batch = writeBatch(db);
+    for (const iss of chunk) {
+      const docRef = doc2(db, COLLECTIONS.CUSTOMER_ISSUANCES, iss.id);
+      batch.set(docRef, cleanDoc(iss));
+    }
+    await batch.commit();
+  }
+  console.log(`[Firestore] Pushed ${issuances.length} customer issuances.`);
+};
+var pushTransfersToFirestore = async (transfers) => {
+  if (!transfers || transfers.length === 0) return;
+  for (let i = 0; i < transfers.length; i += BATCH_SIZE) {
+    const chunk = transfers.slice(i, i + BATCH_SIZE);
+    const batch = writeBatch(db);
+    for (const t of chunk) {
+      const docRef = doc2(db, COLLECTIONS.TRANSFERS, t.id);
+      batch.set(docRef, cleanDoc(t));
+    }
+    await batch.commit();
+  }
+  console.log(`[Firestore] Pushed ${transfers.length} stock transfers.`);
+};
+
+// src/services/storage.ts
+var STORAGE_KEYS = {
+  INVENTORY: "slt_matrix_inventory_v4",
+  LEDGER: "slt_matrix_ledger_v4",
+  OFFLINE_QUEUE: "slt_matrix_offline_queue_v1",
+  ACTIVE_USER: "slt_matrix_active_user_v1",
+  IS_OFFLINE_SIMULATED: "slt_matrix_offline_simulated",
+  HIGH_CONTRAST: "slt_matrix_high_contrast",
+  CUSTOMER_ISSUANCES: "slt_matrix_customer_issuances_v1",
+  TRANSFERS: "slt_matrix_transfers_v2",
+  AUTH_SESSION: "slt_matrix_auth_session_v1"
+};
+var MOCK_AUTH_CREDENTIALS = {
+  email: "kanishka@slt.lk",
+  password: "slt123",
+  name: "Mr. Kanishka",
+  role: "ADMIN_IBT",
+  title: "IBT Lead & Infrastructure Supervisor",
+  branch: "SLT-MOBITEL Colombo HQ / Regional Ops"
+};
+var INITIAL_USERS = [
+  {
+    id: "USR-KANISHKA",
+    name: "Mr. Kanishka",
+    role: "ADMIN_IBT",
+    title: "IBT Lead & Infrastructure Supervisor",
+    branch: "SLT-MOBITEL Colombo HQ / Regional Ops"
+  },
+  {
+    id: "USR-SUNIL",
+    name: "Sunil P. (Field Tech)",
+    role: "FIELD_TECH",
+    title: "Senior Field Telecom Technician",
+    branch: "Metro OSP Field Unit 04"
+  }
+];
+var INITIAL_INVENTORY = [
+  // Standard New Connection (TCOPNC / TC-OPNC)
+  // Official SLT-MOBITEL dostocks inventory records (56 items, 26,419.1 units):
+  {
+    id: "nc-1",
+    materialCode: "CPERTR042",
+    description: "ADSL ROUTER 4-PORT (WI-FI) - FIBERHOME HG-180 (DOT LOGO)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-RTR-FH180-01"],
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-RTR-01"
+  },
+  {
+    id: "nc-2",
+    materialCode: "CPERTR045S",
+    description: "ADSL ROUTER 4-PORT (WI-FI) - PROLINK PRS1140 (DOT LOGO) (SERIAL ENABLED)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 3,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-RTR-PL1140-01", "SLT-RTR-PL1140-02", "SLT-RTR-PL1140-03"],
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-RTR-02"
+  },
+  {
+    id: "nc-3",
+    materialCode: "CPERTR022S",
+    description: "ADSL ROUTER 4-PORT (WI-FI) - TP LINK TD-W8951ND (DOT LOGO) (SERIAL ENABLED)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 11,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 11 }, (_, i) => `SLT-RTR-TP8951-${(i + 1).toString().padStart(2, "0")}`),
+    minThreshold: 2,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-RTR-03"
+  },
+  {
+    id: "nc-4",
+    materialCode: "NWKWFM049",
+    description: "ARUBA AP-303 (RW) UNIFIED AP",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-AP-ARUBA303-01"],
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-ENT-01"
+  },
+  {
+    id: "nc-5",
+    materialCode: "OSPACC012",
+    description: 'BOLT & NUT - L118 (7" x 1/2")',
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 80,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-HDW-01"
+  },
+  {
+    id: "nc-6",
+    materialCode: "OSPACC012-B",
+    description: 'BOLT & NUT - L118 (7" x 1/2") - BATCH 2',
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 30,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-HDW-02"
+  },
+  {
+    id: "nc-7",
+    materialCode: "NWKEAC084",
+    description: "C1121X-8P ISR 1100 8P DUAL GE SFP WAN 8GB ROUTER",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 4,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-CISCO-1121X-01", "SLT-CISCO-1121X-02", "SLT-CISCO-1121X-03", "SLT-CISCO-1121X-04"],
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-ENT-02"
+  },
+  {
+    id: "nc-8",
+    materialCode: "CPEDAT045",
+    description: "CISCO 891F/K9 ROUTER",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-CISCO-891F-01"],
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-ENT-03"
+  },
+  {
+    id: "nc-9",
+    materialCode: "OSPACC016",
+    description: "CLEAT DROPWIRE",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 2317,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 100,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-DW-01"
+  },
+  {
+    id: "nc-10",
+    materialCode: "OSPCPL009",
+    description: "CONCRETE POLE LOW COST - L22 (22 FT / 6.7 m)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 32,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-YARD-POLE-01"
+  },
+  {
+    id: "nc-11",
+    materialCode: "OSPCPL007",
+    description: "CONCRETE POLE SPUN - L22 (22 FT / 6.7 m)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 7,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 2,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-YARD-POLE-02"
+  },
+  {
+    id: "nc-12",
+    materialCode: "OSPCNT017",
+    description: "CONNECTOR (DROPWIRE CABLE)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 245,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-DW-02"
+  },
+  {
+    id: "nc-13",
+    materialCode: "CPEDAT004",
+    description: "CPE 1424 SHDSL ADVANCED EFM/ATM FEE 1-PORT",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-SHDSL-1424-01", "SLT-SHDSL-1424-02"],
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-DSL-01"
+  },
+  {
+    id: "nc-14",
+    materialCode: "CPEDAT006",
+    description: "CPE 1432 SHDSL ATM V.35 1-PORT",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-SHDSL-1432-01"],
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-DSL-02"
+  },
+  {
+    id: "nc-15",
+    materialCode: "OSPERD007",
+    description: "EARTH ROD 120 cm (DRIVING SPIKE-END SLEEVE) 0.56 mm",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 70,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-ERD-01"
+  },
+  {
+    id: "nc-16",
+    materialCode: "OSPFTA002",
+    description: "FAC CONNECTOR",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 590,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-FIB-01"
+  },
+  {
+    id: "nc-17",
+    materialCode: "OSPFTA002-B",
+    description: "FAC CONNECTOR - BATCH 2",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 340,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 30,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-FIB-02"
+  },
+  {
+    id: "nc-18",
+    materialCode: "OSPFTA003",
+    description: "FIBER DROP WIRE (40 km)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 40,
+    receiving: 0,
+    inbound: 0,
+    unit: "ROLLS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-YARD-CBL-01"
+  },
+  {
+    id: "nc-19",
+    materialCode: "OSPFTA003-B",
+    description: "FIBER DROP WIRE (39 km) - BATCH 2",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 39,
+    receiving: 0,
+    inbound: 0,
+    unit: "ROLLS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-YARD-CBL-02"
+  },
+  {
+    id: "nc-20",
+    materialCode: "OSPFTA005",
+    description: "FIBER DROP WIRE RETAINER (WHITE)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1420,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 100,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-DW-03"
+  },
+  {
+    id: "nc-21",
+    materialCode: "OSPFTA005-B",
+    description: "FIBER DROP WIRE RETAINER (WHITE) - BATCH 2",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 3200,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 200,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-DW-04"
+  },
+  {
+    id: "nc-22",
+    materialCode: "OSPFTA007",
+    description: "FIBRE ROSETTE BOX",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 75,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 15,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-FIB-03"
+  },
+  {
+    id: "nc-23",
+    materialCode: "OSPFTA007-B",
+    description: "FIBRE ROSETTE BOX - BATCH 2",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 293,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 25,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-FIB-04"
+  },
+  {
+    id: "nc-24",
+    materialCode: "NWKSRG261",
+    description: "FORTIGATE-40F",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 7,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-FG40F-01", "SLT-FG40F-02", "SLT-FG40F-03", "SLT-FG40F-04", "SLT-FG40F-05", "SLT-FG40F-06", "SLT-FG40F-07"],
+    minThreshold: 2,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-SEC-01"
+  },
+  {
+    id: "nc-25",
+    materialCode: "NWKSRG262",
+    description: "FORTIGATE-60F",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-FG60F-01"],
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-SEC-02"
+  },
+  {
+    id: "nc-26",
+    materialCode: "CPEFTH064S",
+    description: "FTTH ONT - TENDA / HG7",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 47,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 47 }, (_, i) => `SLT-ONT-TD64-A${(i + 1).toString().padStart(2, "0")}`),
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-ONT-01"
+  },
+  {
+    id: "nc-27",
+    materialCode: "CPEFTH064S-B",
+    description: "FTTH ONT - TENDA / HG7 - BATCH 2",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 72,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 72 }, (_, i) => `SLT-ONT-TD64-B${(i + 1).toString().padStart(2, "0")}`),
+    minThreshold: 15,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-ONT-02"
+  },
+  {
+    id: "nc-28",
+    materialCode: "CPEFTH065S",
+    description: "FTTH ONT/ONU - C-DATA/ FD602GW-DX-R410",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-ONT-CD65-01"],
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-ONT-03"
+  },
+  {
+    id: "nc-29",
+    materialCode: "CPEFTH065S-B",
+    description: "FTTH ONT/ONU - C-DATA/ FD602GW-DX-R410 - BATCH 2",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 4,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-ONT-CD65-02", "SLT-ONT-CD65-03", "SLT-ONT-CD65-04", "SLT-ONT-CD65-05"],
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-ONT-04"
+  },
+  {
+    id: "nc-30",
+    materialCode: "OSPACC018",
+    description: 'HOOK "C"',
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 100,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-HDW-03"
+  },
+  {
+    id: "nc-31",
+    materialCode: "OSPACC018-B",
+    description: 'HOOK "C" - BATCH 2',
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 254,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-HDW-04"
+  },
+  {
+    id: "nc-32",
+    materialCode: "OSPACC017",
+    description: 'HOOK "L"',
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 363,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 30,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-HDW-05"
+  },
+  {
+    id: "nc-33",
+    materialCode: "CPEDAT039",
+    description: "IADS WITH 4 ANALOG RJ-11 PORTS (WITH LOCAL SURVIVABILITY)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-IAD4-01", "SLT-IAD4-02"],
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-VOIP-01"
+  },
+  {
+    id: "nc-34",
+    materialCode: "CPEDAT040S",
+    description: "IADS WITH 8 ANALOG RJ-11 PORTS (WITH LOCAL SURVIVABILITY) - SERIAL ENABLED",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-IAD8-01"],
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-VOIP-02"
+  },
+  {
+    id: "nc-35",
+    materialCode: "CPEDAT074",
+    description: "IP PHONE - GRANDSTREAM GRP-2602P + POWER ADAPTER",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-IPP-GS2602-01"],
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-VOIP-03"
+  },
+  {
+    id: "nc-36",
+    materialCode: "CPEDAT068",
+    description: "IP PHONE - GRANDSTREAM GXP-1782",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 3,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-IPP-GS1782-01", "SLT-IPP-GS1782-02", "SLT-IPP-GS1782-03"],
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-VOIP-04"
+  },
+  {
+    id: "nc-37",
+    materialCode: "NWKEAC053",
+    description: "ISR1100-4G ISR1100 SERIES ROUTER, 4 ETH LAN/WAN PORTS, 4G RAM",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 3,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-CISCO-ISR11-01", "SLT-CISCO-ISR11-02", "SLT-CISCO-ISR11-03"],
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-ENT-04"
+  },
+  {
+    id: "nc-38",
+    materialCode: "NWKEAC053-B",
+    description: "ISR1100-4G ISR1100 SERIES ROUTER, 4 ETH LAN/WAN PORTS, 4G RAM - BATCH 2",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-CISCO-ISR11-04"],
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-ENT-05"
+  },
+  {
+    id: "nc-39",
+    materialCode: "OSPACC070",
+    description: "PVC CASINGS (16mm x 12.5mm)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1080,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 100,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-CSG-01"
+  },
+  {
+    id: "nc-40",
+    materialCode: "OSPACC070-B",
+    description: "PVC CASINGS (16mm x 12.5mm) - BATCH 2",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 953,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 100,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-CSG-02"
+  },
+  {
+    id: "nc-41",
+    materialCode: "OSPWIR026",
+    description: "PVC EARTH WIRE 7/0.67 (2.5 Sq.mm)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 265,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-WIR-01"
+  },
+  {
+    id: "nc-42",
+    materialCode: "OSPWIR011",
+    description: "PVC TWIN CABLE 1/10 (0.65 mm)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 400,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-WIR-02"
+  },
+  {
+    id: "nc-43",
+    materialCode: "OSPWIR011-B",
+    description: "PVC TWIN CABLE 1/10 (0.65 mm) - BATCH 2",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 400,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-WIR-03"
+  },
+  {
+    id: "nc-44",
+    materialCode: "ITEACC039",
+    description: "RJ11 CONNECTOR",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 18,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-CON-01"
+  },
+  {
+    id: "nc-45",
+    materialCode: "ITEACC038",
+    description: "RJ45 CONNECTOR",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 669,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-CON-02"
+  },
+  {
+    id: "nc-46",
+    materialCode: "ITEACC038-B",
+    description: "RJ45 CONNECTOR - BATCH 2",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 400,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-CON-03"
+  },
+  {
+    id: "nc-47",
+    materialCode: "CPESTB031V",
+    description: "SET TOP BOX (STB) - SEI 300SLT (PACK)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 30,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 30 }, (_, i) => `SLT-STB-SEI31-${(i + 1).toString().padStart(2, "0")}`),
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-STB-01"
+  },
+  {
+    id: "nc-48",
+    materialCode: "CPEFTA031",
+    description: "SINGLE CABLE, STRAIGHT THROUGH CABLE, (2m), MP8-I, CC4P0.5GY, MP8-I, UNSHIELDED",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 161,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-CBL-01"
+  },
+  {
+    id: "nc-49",
+    materialCode: "BCPEFTA003",
+    description: "SINGLE STRAIGHT THROUGH CABLE MP8-1 CC4P0 5GY (3 m)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 48,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-CBL-02"
+  },
+  {
+    id: "nc-50",
+    materialCode: "OSPACC004",
+    description: "STAPLE WIRE CABLE CLIP (4 mm)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 100,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-CLP-01"
+  },
+  {
+    id: "nc-51",
+    materialCode: "OSPACC004-B",
+    description: "STAPLE WIRE CABLE CLIP (4 mm) - BATCH 2",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 5200,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 200,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-CLP-02"
+  },
+  {
+    id: "nc-52",
+    materialCode: "OSPACC005",
+    description: "STAPLE WIRE CABLE CLIP (5 mm)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 5305,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 200,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-CLP-03"
+  },
+  {
+    id: "nc-53",
+    materialCode: "OSPSTP007",
+    description: "STATION PROTECTOR",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 22,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-STP-01"
+  },
+  {
+    id: "nc-54",
+    materialCode: "CPEPST013S",
+    description: "TELEPHONE PANASONIC KX TS 500MXW (IVORY) (SERIAL ENABLED)",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 12,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 12 }, (_, i) => `SLT-TEL-PAN500-${(i + 1).toString().padStart(2, "0")}`),
+    minThreshold: 2,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-TEL-01"
+  },
+  {
+    id: "nc-55",
+    materialCode: "ITEACC046",
+    description: "UTP CABLE CAT 5E",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1495,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 100,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-UTP-01"
+  },
+  {
+    id: "nc-56",
+    materialCode: "ITEACC046-B",
+    description: "UTP CABLE CAT 5E - BATCH 2",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    quantity: 1220,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 100,
+    lastUpdated: "2026-06-07",
+    binLocation: "NC-BIN-UTP-02"
+  },
+  // Customer Returns (TC-OPNC-R / TCOPNC-R)
+  // Official SLT-MOBITEL dostocks inventory records (31 items):
+  {
+    id: "ret-1",
+    materialCode: "OSPACC016",
+    description: "CLEAT DROPWIRE",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 1500,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-01"
+  },
+  {
+    id: "ret-2",
+    materialCode: "CPEDAT004S",
+    description: "CPE 1424 SHDSL ADVANCED EFM/ATM FEE 1-PORT (SERIAL ENABLE)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 3,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-RET-SHDSL-01", "SLT-RET-SHDSL-02", "SLT-RET-SHDSL-03"],
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-SHDSL"
+  },
+  {
+    id: "ret-3",
+    materialCode: "CPEFTH055S",
+    description: "ECHOLIFE HG8145V5 ONT BASE UNIT (HUAWEI)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 6,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-RET-HW55-01", "SLT-RET-HW55-02", "SLT-RET-HW55-03", "SLT-RET-HW55-04", "SLT-RET-HW55-05", "SLT-RET-HW55-06"],
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-HW55"
+  },
+  {
+    id: "ret-4",
+    materialCode: "CPEFTH056",
+    description: "ECHOLIFE HG8145V5 ONT POWER SUPPLY UNIT, UK PLUG",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 45,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-PWR"
+  },
+  {
+    id: "ret-5",
+    materialCode: "CPEFTH037",
+    description: "ECHOLIFE HG8145V5, GPON TERMINAL, SC/APC, UK STANDARD ADAPTER, ENGLISH",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 7,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-HW37"
+  },
+  {
+    id: "ret-6",
+    materialCode: "CPEFTH045S",
+    description: "ECHOLIFE HG8245H5 ONT BASE UNIT (HUAWEI)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 45,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 45 }, (_, idx) => `SLT-RET-HW45-${(idx + 1).toString().padStart(3, "0")}`),
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-HW45"
+  },
+  {
+    id: "ret-7",
+    materialCode: "CPEFTH046",
+    description: "ECHOLIFE HG8245H5 ONT POWER SUPPLY UNIT, UK PLUG",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 28,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-PWR"
+  },
+  {
+    id: "ret-8",
+    materialCode: "CPEFTH068S",
+    description: "FTTH ONT/ONU - C-DATA/ FD602GW-DX-R410 - BASE UNIT",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 8,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 8 }, (_, idx) => `SLT-RET-CD68-${(idx + 1).toString().padStart(2, "0")}`),
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-CD68"
+  },
+  {
+    id: "ret-9",
+    materialCode: "CPEFTA045",
+    description: "FTTH ONT/ONU - C-DATA/ FD602GW-DX-R410 - FIBER PATCH CODE",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 16,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-CABLE"
+  },
+  {
+    id: "ret-10",
+    materialCode: "CPEFTA044",
+    description: "FTTH ONT/ONU - C-DATA/ FD602GW-DX-R410 - POWER SUPPLY UNIT",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 30,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-PWR"
+  },
+  {
+    id: "ret-11",
+    materialCode: "CPEFTH028S",
+    description: "HUAWEI HG8245H GPON - UNIT ONLY (SERIAL ENABLED) (ONT)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 6,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 6 }, (_, idx) => `SLT-RET-HW28-${(idx + 1).toString().padStart(2, "0")}`),
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-HW28"
+  },
+  {
+    id: "ret-12",
+    materialCode: "CPEFTH015S",
+    description: "HUAWEI HG8245H5 GPONT TERMINAL ADAPTER EN SC/APC (UK STANDARD) (SERIAL ENABLED)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-RET-HW15-01"],
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-HW15"
+  },
+  {
+    id: "ret-13",
+    materialCode: "CPELTE008S",
+    description: "LTE ROUTER - HUAWEI B310S-925 (SERIAL ENABLED)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-RET-LTE08-01"],
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-LTE"
+  },
+  {
+    id: "ret-14",
+    materialCode: "NWKPTC227",
+    description: "PATCH CORD, SC/APC, SC/UPC, SINGLE-MODE,(2m), G.652D,(3mm)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 12,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-CABLE"
+  },
+  {
+    id: "ret-15",
+    materialCode: "CPESTB027",
+    description: "SET TOP BOX (STB) - HWACOM HC-J3370-S4 (PACK)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 6,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 6 }, (_, idx) => `SLT-RET-HC27-${(idx + 1).toString().padStart(2, "0")}`),
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-STB"
+  },
+  {
+    id: "ret-16",
+    materialCode: "CPEFTA031",
+    description: "SINGLE CABLE, STRAIGHT THROUGH CABLE, (2m), MP8-I, CC4P0.5GY, MP8-I, UNSHIELDED",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 18,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-CABLE"
+  },
+  {
+    id: "ret-17",
+    materialCode: "CPESTA035V",
+    description: "STB AV CABLE - SEI 300SLT (SPARE)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-CABLE"
+  },
+  {
+    id: "ret-18",
+    materialCode: "CPESTA015",
+    description: "STB CAT5 CABLE 3M",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-CABLE"
+  },
+  {
+    id: "ret-19",
+    materialCode: "CPESTA011",
+    description: "STB HDMI CABLE",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 57,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-CABLE"
+  },
+  {
+    id: "ret-20",
+    materialCode: "CPESTA034V",
+    description: "STB IR REMOTE CONTROL - SEI300SLT (SPARE)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 35,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-RMT"
+  },
+  {
+    id: "ret-21",
+    materialCode: "CPESTB030",
+    description: "STB MAIN UNIT - HWACOM HC-J3370-S4.1 (SPARE)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 21,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 21 }, (_, idx) => `SLT-RET-HC30-${(idx + 1).toString().padStart(2, "0")}`),
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-STB"
+  },
+  {
+    id: "ret-22",
+    materialCode: "CPESTB001S",
+    description: "STB MAIN UNIT - NETGEM N7700 (SPARE)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 12,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 12 }, (_, idx) => `SLT-RET-NG01-${(idx + 1).toString().padStart(2, "0")}`),
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-STB"
+  },
+  {
+    id: "ret-23",
+    materialCode: "CPESTB008S",
+    description: "STB MAIN UNIT - NETGEM N7800 (SPARE)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 18,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 18 }, (_, idx) => `SLT-RET-NG08-${(idx + 1).toString().padStart(2, "0")}`),
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-STB"
+  },
+  {
+    id: "ret-24",
+    materialCode: "CPESTB032V",
+    description: "STB MAIN UNIT - SEI 300SLT (SPARE)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-RET-SEI32-01"],
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-STB-01"
+  },
+  {
+    id: "ret-25",
+    materialCode: "CPESTB032V-B",
+    description: "STB MAIN UNIT - SEI 300SLT (SPARE) - BATCH 2",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 37,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: Array.from({ length: 37 }, (_, idx) => `SLT-RET-SEI32-B${(idx + 1).toString().padStart(2, "0")}`),
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-BAY-STB-02"
+  },
+  {
+    id: "ret-26",
+    materialCode: "CPESTB009",
+    description: "STB NETGEM POWER SUPPLY UNIT 12V (SPARE)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 33,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-PWR"
+  },
+  {
+    id: "ret-27",
+    materialCode: "CPESTB010",
+    description: "STB NETGEM REMOTE CONTROL (SPARE)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 38,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-RMT"
+  },
+  {
+    id: "ret-28",
+    materialCode: "CPESTB016",
+    description: "STB POWER SUPPLY UNIT HWACOM HC J3370 (SPARE)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-PWR"
+  },
+  {
+    id: "ret-29",
+    materialCode: "CPESTB017",
+    description: "STB REMOTE CONTROL - HWACOM HC-J3370 (SPARE)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 33,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-RMT"
+  },
+  {
+    id: "ret-30",
+    materialCode: "CPESTA013",
+    description: "STB REMOTE CONTROL - NETGEM N7700",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 20,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-RMT"
+  },
+  {
+    id: "ret-31",
+    materialCode: "CPESTA033V",
+    description: "STB POWER SUPPLY UNIT - SEI 300SLT (SPARE)",
+    subCategory: "TCOPNC-R",
+    mainCategory: "New Connection",
+    quantity: 40,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:30",
+    binLocation: "RET-ACC-PWR"
+  },
+  // Collective Stock / Recovery (TC-OPNC-C / TCOPNC-C)
+  // Official SLT-MOBITEL dostocks inventory records:
+  {
+    id: "col-1",
+    materialCode: "CPEFTH055S",
+    description: "ECHOLIFE HG8145V5 ONT BASE UNIT (HUAWEI)",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-COL-HW55-001"],
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-STK-01"
+  },
+  {
+    id: "col-2",
+    materialCode: "CPEFTH056",
+    description: "ECHOLIFE HG8145V5 ONT POWER SUPPLY UNIT, UK PLUG",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-STK-01"
+  },
+  {
+    id: "col-3",
+    materialCode: "CPEFTH037",
+    description: "ECHOLIFE HG8145V5, GPON TERMINAL, SC/APC, UK STANDARD ADAPTER, ENGLISH",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-STK-01"
+  },
+  {
+    id: "col-4",
+    materialCode: "CPEFTH064S",
+    description: "FTTH ONT - TENDA / HG7",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-COL-TD64-001"],
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-STK-01"
+  },
+  {
+    id: "col-5",
+    materialCode: "CPEFTH068S",
+    description: "FTTH ONT/ONU - C-DATA/ FD602GW-DX-R410 - BASE UNIT",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-COL-CD68-001"],
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-STK-02"
+  },
+  {
+    id: "col-6",
+    materialCode: "CPEFTA045",
+    description: "FTTH ONT/ONU - C-DATA/ FD602GW-DX-R410 - FIBER PATCH CODE",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-STK-02"
+  },
+  {
+    id: "col-7",
+    materialCode: "CPEFTA044",
+    description: "FTTH ONT/ONU - C-DATA/ FD602GW-DX-R410 - POWER SUPPLY UNIT",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-STK-02"
+  },
+  {
+    id: "col-8",
+    materialCode: "CPEFTH015S",
+    description: "HUAWEI HG8245H5 GPONT TERMINAL ADAPTER EN SC/APC (UK STANDARD) (SERIAL ENABLED)",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-COL-HW15-001"],
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-STK-02"
+  },
+  {
+    id: "col-9",
+    materialCode: "NWKPTC227",
+    description: "PATCH CORD, SC/APC, SC/UPC, SINGLE-MODE, (2m), G.652D, (3mm)",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-CABLE-01"
+  },
+  {
+    id: "col-10",
+    materialCode: "CPESTB023",
+    description: "SET TOP BOX (STB) - SDMC DV8040 (PACK)",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-COL-STB23-001"],
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-STB-01"
+  },
+  {
+    id: "col-11",
+    materialCode: "CPESTB031V",
+    description: "SET TOP BOX (STB) - SEI 300SLT (PACK)",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-COL-STB31-001", "SLT-COL-STB31-002"],
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-STB-01"
+  },
+  {
+    id: "col-12",
+    materialCode: "CPESTA035V",
+    description: "STB AV CABLE - SEI 300SLT (SPARE)",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-ACC-01"
+  },
+  {
+    id: "col-13",
+    materialCode: "CPESTA015",
+    description: "STB CAT5 CABLE 3M",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-ACC-01"
+  },
+  {
+    id: "col-14",
+    materialCode: "CPESTA011",
+    description: "STB HDMI CABLE",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-ACC-01"
+  },
+  {
+    id: "col-15",
+    materialCode: "CPESTA034V",
+    description: "STB IR REMOTE CONTROL - SEI300SLT (SPARE)",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-ACC-01"
+  },
+  {
+    id: "col-16",
+    materialCode: "CPESTB032V",
+    description: "STB MAIN UNIT - SEI 300SLT (SPARE)",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-COL-STB32-001"],
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-STB-01"
+  },
+  {
+    id: "col-17",
+    materialCode: "CPESTA033V",
+    description: "STB POWER SUPPLY UNIT - SEI 300SLT (SPARE)",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2025-01-04 12:00",
+    binLocation: "COL-ACC-01"
+  },
+  // Rehabilitation (TC-OPCDR) - Bulk Non-Serialized & OSP hardware
+  // Rehabilitation (TC-OPCDR) - Official Material Verification Sheet (86 Items, 12,058 units)
+  {
+    id: "reh-1",
+    materialCode: "OSPFIT002",
+    description: "AERIAL CABLE FITTING - SHARP ANGLED",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 3,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-2",
+    materialCode: "OSPFIT011",
+    description: "AERIAL CABLE FITTING FOR SPUN POLE - SHARP ANGLED",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 5,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 2,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-3",
+    materialCode: "HDBHDW351",
+    description: "BARBED WIRE GALVANIZED",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "ROLLS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260104-999"
+  },
+  {
+    id: "reh-4",
+    materialCode: "OSPACC010",
+    description: 'BOLT & NUT - L116 (6" x 1/2")',
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 4,
+    receiving: 0,
+    inbound: 0,
+    unit: "SETS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH--"
+  },
+  {
+    id: "reh-5",
+    materialCode: "CPCACC064",
+    description: "BRANCH OFF KIT (LARGE)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "SETS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250104-999"
+  },
+  {
+    id: "reh-6",
+    materialCode: "CPCACC062",
+    description: "BRANCH OFF KIT (SMALL)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "SETS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250104-999"
+  },
+  {
+    id: "reh-7",
+    materialCode: "OSPACC015",
+    description: "BRIDLE RING",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 24,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-162103-999"
+  },
+  {
+    id: "reh-8",
+    materialCode: "OSPACC015-B",
+    description: "BRIDLE RING (DEPOT 2)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 115,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-9",
+    materialCode: "OSPACC015-C",
+    description: "BRIDLE RING (DEPOT 3)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 18,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250104-999"
+  },
+  {
+    id: "reh-10",
+    materialCode: "CPCARL009",
+    description: "CABLE AERIAL (0.5 mm/10 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 1671,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 100,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-11",
+    materialCode: "BCPCARL014",
+    description: "CABLE AERIAL (0.5 mm/100 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 138,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-SSD-160203-999"
+  },
+  {
+    id: "reh-12",
+    materialCode: "CPCARL014",
+    description: "CABLE AERIAL (0.5 mm/100 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 235,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-160203-999"
+  },
+  {
+    id: "reh-13",
+    materialCode: "BCPCARL014-B",
+    description: "CABLE AERIAL (0.5 mm/100 PR) - BATCH 2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 319,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-130307-999"
+  },
+  {
+    id: "reh-14",
+    materialCode: "CPCARL014-B",
+    description: "CABLE AERIAL (0.5 mm/100 PR) - BATCH 3",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 650,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-15",
+    materialCode: "BCPCARL015",
+    description: "CABLE AERIAL (0.5 mm/150 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 15,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-150202-999"
+  },
+  {
+    id: "reh-16",
+    materialCode: "CPCARL015",
+    description: "CABLE AERIAL (0.5 mm/150 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 420,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-162103-999"
+  },
+  {
+    id: "reh-17",
+    materialCode: "CPCARL010",
+    description: "CABLE AERIAL (0.5 mm/20 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 244,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-18",
+    materialCode: "BCPCARL012",
+    description: "CABLE AERIAL (0.5 mm/50 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 486,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-SSD-160203-999"
+  },
+  {
+    id: "reh-19",
+    materialCode: "BCPCARL012-B",
+    description: "CABLE AERIAL (0.5 mm/50 PR) - BATCH 2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 56,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-130307-999"
+  },
+  {
+    id: "reh-20",
+    materialCode: "CPCARL012",
+    description: "CABLE AERIAL (0.5 mm/50 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 100,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 30,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-162103-999"
+  },
+  {
+    id: "reh-21",
+    materialCode: "BCPCARL012-C",
+    description: "CABLE AERIAL (0.5 mm/50 PR) - BATCH 3",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 55,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-162103-999"
+  },
+  {
+    id: "reh-22",
+    materialCode: "BCPCARL016",
+    description: "CABLE AERIAL S/S U/TWIN (0.5 mm/200 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 138,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 30,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH--"
+  },
+  {
+    id: "reh-23",
+    materialCode: "BCPCARL016-B",
+    description: "CABLE AERIAL S/S U/TWIN (0.5 mm/200 PR) - BATCH 2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 80,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-24",
+    materialCode: "BCPCARL011",
+    description: "CABLE AERIAL S/S U/TWIN (0.5 mm/30 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 28,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-SSD-160202-999"
+  },
+  {
+    id: "reh-25",
+    materialCode: "BCPCUGC056",
+    description: "CABLE UG (0.5 mm/10 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 114,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 30,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-SSD-160203-999"
+  },
+  {
+    id: "reh-26",
+    materialCode: "CPCUGC056",
+    description: "CABLE UG (0.5 mm/10 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 37,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-27",
+    materialCode: "CPCUGC057",
+    description: "CABLE UG (0.5 mm/20 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 530,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-28",
+    materialCode: "CPCUGC062",
+    description: "CABLE UG (0.5 mm/200 PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 260,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 40,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-29",
+    materialCode: "OSPCCT023",
+    description: "CCT PROTECTED EXTERNAL (10PR)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 12,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260001-999"
+  },
+  {
+    id: "reh-30",
+    materialCode: "OSPCCT023-B",
+    description: "CCT PROTECTED EXTERNAL (10PR) - BIN 2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 3,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 2,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250002-999"
+  },
+  {
+    id: "reh-31",
+    materialCode: "OSPCCT023-C",
+    description: "CCT PROTECTED EXTERNAL (10PR) - BIN 3",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 8,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 2,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260104-999"
+  },
+  {
+    id: "reh-32",
+    materialCode: "CPCACC002",
+    description: "CLOSURE UG (43-8-200)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 15,
+    receiving: 0,
+    inbound: 0,
+    unit: "SETS",
+    isSerialized: false,
+    minThreshold: 3,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250104-999"
+  },
+  {
+    id: "reh-33",
+    materialCode: "OSPCPL003",
+    description: "CONCRETE POLE - L24 (24 FT / 7.5 m)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 11,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 2,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260001-999"
+  },
+  {
+    id: "reh-34",
+    materialCode: "OSPCPL004",
+    description: "CONCRETE POLE - L26 (26 FT / 8.0 m)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 3,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260001-999"
+  },
+  {
+    id: "reh-35",
+    materialCode: "OSPCPL005",
+    description: "CONCRETE POLE - L30 (30 FT / 9.0 m)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 10,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 2,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-36",
+    materialCode: "OSPCPL007",
+    description: "CONCRETE POLE SPUN - L22 (22 FT / 6.7 m)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 3,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-37",
+    materialCode: "OSPCPL007-B",
+    description: "CONCRETE POLE SPUN - L22 (22 FT / 6.7 m) - BIN 2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 4,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-SSD--"
+  },
+  {
+    id: "reh-38",
+    materialCode: "OSPCPL007-C",
+    description: "CONCRETE POLE SPUN - L22 (22 FT / 6.7 m) - BIN 3",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-SSD-160203-999"
+  },
+  {
+    id: "reh-39",
+    materialCode: "OSPCNT017",
+    description: "CONNECTOR (DROPWIRE CABLE)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 800,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 100,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250002-999"
+  },
+  {
+    id: "reh-40",
+    materialCode: "OSPCNT017-B",
+    description: "CONNECTOR (DROPWIRE CABLE) - BATCH 2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 2600,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 200,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250104-999"
+  },
+  {
+    id: "reh-41",
+    materialCode: "OSPCNT002",
+    description: "CONNECTOR UY 2 (0.4 mm - 0.9 mm)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 1e3,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 200,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260104-999"
+  },
+  {
+    id: "reh-42",
+    materialCode: "OSPCBM049",
+    description: "CROSS CONNECTION CABINET WITH LOCK - KRONE 59M2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH--"
+  },
+  {
+    id: "reh-43",
+    materialCode: "OSPCBM052",
+    description: "DOOR RETAINER - KRONE 59M2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH--"
+  },
+  {
+    id: "reh-44",
+    materialCode: "OSPWIR001",
+    description: "DROP WIRE SELF SUPPORTING (0.65 mm)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 300,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 50,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260104-999"
+  },
+  {
+    id: "reh-45",
+    materialCode: "OSPWIR001-B",
+    description: "DROP WIRE SELF SUPPORTING (0.65 mm) - BATCH 2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 500,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 100,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-46",
+    materialCode: "OSPCBM045",
+    description: "EARTH CONNECTOR OF CABINET - KRONE 83A/59M2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH--"
+  },
+  {
+    id: "reh-47",
+    materialCode: "OSPERD007",
+    description: "EARTH ROD 120 cm (DRIVING SPIKE-END SLEEVE) 0.56 mm",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 53,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-48",
+    materialCode: "OSPERD007-B",
+    description: "EARTH ROD 120 cm (DRIVING SPIKE-END SLEEVE) 0.56 mm - BATCH 2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 10,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-49",
+    materialCode: "OSPFTA001",
+    description: "FIBER DISTRIBUTION POINT",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 13,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 2,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260104-999"
+  },
+  {
+    id: "reh-50",
+    materialCode: "OSPACC061",
+    description: "FIBER DISTRIBUTION POINT - POLE MOUNT",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-190106-999"
+  },
+  {
+    id: "reh-51",
+    materialCode: "OSPFTA003",
+    description: "FIBER DROP WIRE",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "ROLLS",
+    isSerialized: false,
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260104-999"
+  },
+  {
+    id: "reh-52",
+    materialCode: "OSPACC076",
+    description: "FIBER DROP WIRE RETAINER (NON-METALLIC)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 250,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-53",
+    materialCode: "OSPFTA005",
+    description: "FIBER DROP WIRE RETAINER (WHITE)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 12,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-230101-999"
+  },
+  {
+    id: "reh-54",
+    materialCode: "OSPFTA005-B",
+    description: "FIBER DROP WIRE RETAINER (WHITE) - BATCH 2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 200,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250002-999"
+  },
+  {
+    id: "reh-55",
+    materialCode: "OSPFTA005-C",
+    description: "FIBER DROP WIRE RETAINER (WHITE) - BATCH 3",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 10,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260104-999"
+  },
+  {
+    id: "reh-56",
+    materialCode: "OSPFTA015",
+    description: "FIBER SLEEVE 60 MM (DOUBLE ROD) WITH A PROTECTION BOX",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 100,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260104-999"
+  },
+  {
+    id: "reh-57",
+    materialCode: "OSPFTA004",
+    description: "FIBER SPLITTER 1:8 (PLC TYPE)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260104-999"
+  },
+  {
+    id: "reh-58",
+    materialCode: "OFCACC032",
+    description: "FIBER SPLITTER 1:8 (PLC TYPE) - ALTERNATE",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-59",
+    materialCode: "OSPCBM060",
+    description: "FIBER TERMINATION CABINET (POLE MOUNT 16 PORTS)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "UNITS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-190106-999"
+  },
+  {
+    id: "reh-60",
+    materialCode: "OSPCBM050",
+    description: "FIXING MATERIAL FOR BACK MOUNT FRAME - KRONE 59M2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 4,
+    receiving: 0,
+    inbound: 0,
+    unit: "SETS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH--"
+  },
+  {
+    id: "reh-61",
+    materialCode: "OSPMHH002",
+    description: "FRAME AND COVER - HANDHOLE HH02",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 1,
+    receiving: 0,
+    inbound: 0,
+    unit: "SETS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH--"
+  },
+  {
+    id: "reh-62",
+    materialCode: "OSPMHH003",
+    description: "FRAME AND COVER - HANDHOLE HH03",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 3,
+    receiving: 0,
+    inbound: 0,
+    unit: "SETS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH--"
+  },
+  {
+    id: "reh-63",
+    materialCode: "OSPMHH013",
+    description: "FRAME AND COVER - MANHOLE S1",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 6,
+    receiving: 0,
+    inbound: 0,
+    unit: "SETS",
+    isSerialized: false,
+    minThreshold: 1,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH--"
+  },
+  {
+    id: "reh-64",
+    materialCode: "OSPACC023",
+    description: "GRIP WIRE PREFORMED STAINLESS STEEL CABLE (18 mm)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 30,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-65",
+    materialCode: "OSPACC026",
+    description: "GRIP WIRE PREFORMED STAINLESS STEEL CABLE (38 mm)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 45,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-66",
+    materialCode: "OSPACC072",
+    description: "GRIP WIRE PREFORMED STAINLESS STEEL CABLE (8 mm)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 20,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260104-999"
+  },
+  {
+    id: "reh-67",
+    materialCode: "OSPACC018",
+    description: 'HOOK "C"',
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250104-999"
+  },
+  {
+    id: "reh-68",
+    materialCode: "OSPACC017",
+    description: 'HOOK "L"',
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 17,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 2,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-69",
+    materialCode: "OSPCBM046",
+    description: "IRON CLAMP OF CABINET - KRONE 83A/59M2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH--"
+  },
+  {
+    id: "reh-70",
+    materialCode: "OSPWIR026",
+    description: "PVC EARTH WIRE 7/0.67 (2.5 Sq.mm)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 100,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-71",
+    materialCode: "OSPWIR011",
+    description: "PVC TWIN CABLE 1/10 (0.65 mm)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 200,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 30,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-72",
+    materialCode: "OSPACC014",
+    description: "RETAINER DROPWIRE",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 100,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-250104-999"
+  },
+  {
+    id: "reh-73",
+    materialCode: "OSPACC014-B",
+    description: "RETAINER DROPWIRE - BATCH 2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 100,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250002-999"
+  },
+  {
+    id: "reh-74",
+    materialCode: "OSPACC014-C",
+    description: "RETAINER DROPWIRE - BATCH 3",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 30,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250104-999"
+  },
+  {
+    id: "reh-75",
+    materialCode: "OSPACC014-D",
+    description: "RETAINER DROPWIRE - BATCH 4",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 230,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-76",
+    materialCode: "OSPACC019",
+    description: "ROD STAY COMPLETE",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 18,
+    receiving: 0,
+    inbound: 0,
+    unit: "SETS",
+    isSerialized: false,
+    minThreshold: 3,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-77",
+    materialCode: "OSPACC029",
+    description: "STAINLESS STEEL BAND (10 mm)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 304,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 30,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-SSD-160202-999"
+  },
+  {
+    id: "reh-78",
+    materialCode: "OSPACC029-B",
+    description: "STAINLESS STEEL BAND (10 mm) - BATCH 2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 40,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250107-999"
+  },
+  {
+    id: "reh-79",
+    materialCode: "OSPACC029-C",
+    description: "STAINLESS STEEL BAND (10 mm) - BATCH 3",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 40,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260104-999"
+  },
+  {
+    id: "reh-80",
+    materialCode: "OSPACC029-D",
+    description: "STAINLESS STEEL BAND (10 mm) - BATCH 4",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 32,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250104-999"
+  },
+  {
+    id: "reh-81",
+    materialCode: "OSPACC029-E",
+    description: "STAINLESS STEEL BAND (10 mm) - BATCH 5",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 150,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 20,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-260001-999"
+  },
+  {
+    id: "reh-82",
+    materialCode: "OSPACC005",
+    description: "STAPLE WIRE CABLE CLIP (5 mm)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 100,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250104-999"
+  },
+  {
+    id: "reh-83",
+    materialCode: "OSPSTP007",
+    description: "STATION PROTECTOR",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 82,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 10,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250104-999"
+  },
+  {
+    id: "reh-84",
+    materialCode: "OSPACC032",
+    description: "STEEL BUCKLE (13.5 mm)",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 20,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-260104-999"
+  },
+  {
+    id: "reh-85",
+    materialCode: "OSPACC032-B",
+    description: "STEEL BUCKLE (13.5 mm) - BATCH 2",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 20,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-CDR-250107-999"
+  },
+  {
+    id: "reh-86",
+    materialCode: "OSPACC032-C",
+    description: "STEEL BUCKLE (13.5 mm) - BATCH 3",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    quantity: 25,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 5,
+    lastUpdated: "2026-06-07",
+    binLocation: "TC-01-REH-230101-999"
+  },
+  // Rehab Returned Material (TC-OPCDR-R)
+  // Official SLT Dostocks Verification Sheet (10 Items, 4,452 Units)
+  {
+    id: "reh-ret-1",
+    materialCode: "CPCUGC062",
+    description: "CABLE UG (0.5 mm/200 PR)",
+    subCategory: "TC-OPCDR-R",
+    mainCategory: "Rehabilitation",
+    quantity: 365,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "USB-TC-OPCD--"
+  },
+  {
+    id: "reh-ret-2",
+    materialCode: "OSPCPL002",
+    description: "CONCRETE POLE SQUARE - L22 (22 FT / 6.7 m)",
+    subCategory: "TC-OPCDR-R",
+    mainCategory: "Rehabilitation",
+    quantity: 2,
+    receiving: 0,
+    inbound: 0,
+    unit: "PCS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "USB-TC-OPCD--"
+  },
+  {
+    id: "reh-ret-3",
+    materialCode: "CPCARL015",
+    description: "CABLE AERIAL (0.5 mm/150 PR)",
+    subCategory: "TC-OPCDR-R",
+    mainCategory: "Rehabilitation",
+    quantity: 315,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "USB-TC-OPCD--"
+  },
+  {
+    id: "reh-ret-4",
+    materialCode: "BCPCARL016",
+    description: "CABLE AERIAL S/S U/TWIN (0.5 mm/200 PR)",
+    subCategory: "TC-OPCDR-R",
+    mainCategory: "Rehabilitation",
+    quantity: 110,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "USB-TC-OPCD--"
+  },
+  {
+    id: "reh-ret-5",
+    materialCode: "CPCARL011",
+    description: "CABLE AERIAL S/S U/TWIN (0.5 mm/30 PR)",
+    subCategory: "TC-OPCDR-R",
+    mainCategory: "Rehabilitation",
+    quantity: 735,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "USB-TC-OPCD--"
+  },
+  {
+    id: "reh-ret-6",
+    materialCode: "CPCUGC056",
+    description: "CABLE UG (0.5 mm/10 PR)",
+    subCategory: "TC-OPCDR-R",
+    mainCategory: "Rehabilitation",
+    quantity: 30,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "USB-TC-OPCD--"
+  },
+  {
+    id: "reh-ret-7",
+    materialCode: "CPCUGC057",
+    description: "CABLE UG (0.5 mm/20 PR)",
+    subCategory: "TC-OPCDR-R",
+    mainCategory: "Rehabilitation",
+    quantity: 645,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "USB-TC-OPCD--"
+  },
+  {
+    id: "reh-ret-8",
+    materialCode: "CPCARL010",
+    description: "CABLE AERIAL (0.5 mm/20 PR)",
+    subCategory: "TC-OPCDR-R",
+    mainCategory: "Rehabilitation",
+    quantity: 375,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "USB-TC-OPCD--"
+  },
+  {
+    id: "reh-ret-9",
+    materialCode: "CPCARL012",
+    description: "CABLE AERIAL (0.5 mm/50 PR)",
+    subCategory: "TC-OPCDR-R",
+    mainCategory: "Rehabilitation",
+    quantity: 1255,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "USB-TC-OPCD--"
+  },
+  {
+    id: "reh-ret-10",
+    materialCode: "CPCARL014",
+    description: "CABLE AERIAL (0.5 mm/100 PR)",
+    subCategory: "TC-OPCDR-R",
+    mainCategory: "Rehabilitation",
+    quantity: 620,
+    receiving: 0,
+    inbound: 0,
+    unit: "METERS",
+    isSerialized: false,
+    minThreshold: 0,
+    lastUpdated: "2026-06-07",
+    binLocation: "USB-TC-OPCD--"
+  }
+];
+var INITIAL_LEDGER = [
+  {
+    id: "tx-1001",
+    timestamp: "2025-01-04 08:30:12",
+    userId: "USR-KANISHKA",
+    userName: "Mr. Kanishka",
+    actionType: "DISPATCH_RECEIVE",
+    mainCategory: "Rehabilitation",
+    subCategory: "TC-OPCDR",
+    materialCode: "OSPFIT002",
+    materialDescription: "AERIAL CABLE FITTING - SHARP ANGLED",
+    quantityDelta: 100,
+    unit: "PCS",
+    locatorId: "TC-01-REH-250104-999",
+    notes: "Main Branch dispatch received at Colombo South depot via batch locator decode.",
+    syncStatus: "SYNCED"
+  },
+  {
+    id: "tx-1002",
+    timestamp: "2025-01-04 09:15:40",
+    userId: "USR-SUNIL",
+    userName: "Sunil P. (Field Tech)",
+    actionType: "DEVICE_ALLOCATION",
+    mainCategory: "New Connection",
+    subCategory: "TCOPNC",
+    materialCode: "ONT-HW-EG8145V5",
+    materialDescription: "HUAWEI FIBER ONT GPON DUAL-BAND WI-FI",
+    quantityDelta: -1,
+    unit: "UNITS",
+    serialNumber: "SLT-ONT-98200",
+    accountNo: "0112458990",
+    customerName: "K. D. Gunaratne",
+    notes: "FTTH High-Speed Fiber activation completed with optical dBm test passed.",
+    syncStatus: "SYNCED"
+  },
+  {
+    id: "tx-1003",
+    timestamp: "2025-01-04 10:45:19",
+    userId: "USR-SUNIL",
+    userName: "Sunil P. (Field Tech)",
+    actionType: "REHAB_CONSUMPTION",
+    mainCategory: "Rehabilitation",
+    subCategory: "TC-OPCDR",
+    materialCode: "OSPFIT002",
+    materialDescription: "AERIAL CABLE FITTING - SHARP ANGLED",
+    quantityDelta: -12,
+    unit: "PCS",
+    workOrderNo: "WO-2025-08129",
+    notes: "Rehabilitation of trunk aerial span between Pole #41 and #48.",
+    syncStatus: "SYNCED"
+  },
+  {
+    id: "tx-1004",
+    timestamp: "2025-01-04 11:20:00",
+    userId: "USR-SUNIL",
+    userName: "Sunil P. (Field Tech)",
+    actionType: "CUSTOMER_RETURN",
+    mainCategory: "New Connection",
+    subCategory: "TCOPNC-R",
+    materialCode: "ONT-HW-EG8145V5",
+    materialDescription: "HUAWEI FIBER ONT (CUSTOMER RETURNED)",
+    quantityDelta: 1,
+    unit: "UNITS",
+    serialNumber: "SLT-ONT-RET-111",
+    accountNo: "0112789123",
+    customerName: "A. R. M. Nazeer",
+    reasonCode: "Service Churn / Relocation",
+    itemCondition: "GOOD_REUSABLE",
+    notes: "Segregated into customer return holding bay.",
+    syncStatus: "SYNCED"
+  },
+  {
+    id: "tx-1010",
+    timestamp: "2026-06-05 08:30:00",
+    entryDate: "2026-06-05",
+    userId: "USR-KANISHKA",
+    userName: "Mr. Kanishka",
+    actionType: "DISPATCH_RECEIVE",
+    mainCategory: "New Connection",
+    subCategory: "TCOPNC",
+    materialCode: "CPERTR042",
+    materialDescription: "ADSL ROUTER 4-PORT (WI-FI) - FIBERHOME HG-180 (DOT LOGO)",
+    quantityDelta: 25,
+    unit: "UNITS",
+    locatorId: "NC-BIN-RTR-01-260605",
+    notes: "Main Logistics Central Hub Colombo - Batch RTR-26-05",
+    syncStatus: "SYNCED"
+  },
+  {
+    id: "tx-1011",
+    timestamp: "2026-06-08 10:15:00",
+    entryDate: "2026-06-08",
+    userId: "USR-KANISHKA",
+    userName: "Mr. Kanishka",
+    actionType: "DISPATCH_RECEIVE",
+    mainCategory: "Rehabilitation",
+    subCategory: "TC-OPCDR",
+    materialCode: "OSPFIT002",
+    materialDescription: "AERIAL CABLE FITTING - SHARP ANGLED",
+    quantityDelta: 150,
+    unit: "PCS",
+    locatorId: "TC-01-REH-260608-881",
+    notes: "Container 08 Delivery from Welikada Central Depot",
+    syncStatus: "SYNCED"
+  },
+  {
+    id: "tx-1012",
+    timestamp: "2026-06-12 14:20:00",
+    entryDate: "2026-06-12",
+    userId: "USR-SUNIL",
+    userName: "Sunil P. (Field Tech)",
+    actionType: "DISPATCH_RECEIVE",
+    mainCategory: "New Connection",
+    subCategory: "TCOPNC",
+    materialCode: "CPEFTH064S",
+    materialDescription: "GPON ONT (4FE+2TEL+WIFI) - HUAWEI HG8245H",
+    quantityDelta: 40,
+    unit: "UNITS",
+    serialNumber: "SLT-ONT-8245H-BATCH-01",
+    locatorId: "NC-BIN-ONT-260612",
+    notes: "Inbound dispatch batch of Huawei ONTs verified with test power on.",
+    syncStatus: "SYNCED"
+  },
+  {
+    id: "tx-1013",
+    timestamp: "2026-06-15 09:00:00",
+    entryDate: "2026-06-15",
+    userId: "USR-KANISHKA",
+    userName: "Mr. Kanishka",
+    actionType: "DISPATCH_RECEIVE",
+    mainCategory: "Rehabilitation",
+    subCategory: "TC-OPCDR",
+    materialCode: "CABFTH001",
+    materialDescription: "OPTICAL FIBER CABLE 48F SM AERIAL",
+    quantityDelta: 500,
+    unit: "METERS",
+    locatorId: "TC-01-CDR-260615-302",
+    notes: "Rehab Trunk cable spool received for Colombo-Kandy road project.",
+    syncStatus: "SYNCED"
+  }
+];
+var INITIAL_CUSTOMER_ISSUANCES = [
+  {
+    id: "ISS-20260602-001",
+    issueDate: "2026-06-02",
+    timestamp: "2026-06-02 10:15:00",
+    materialCode: "CPERTR042",
+    materialDescription: "ADSL ROUTER 4-PORT (WI-FI) - FIBERHOME HG-180 (DOT LOGO)",
+    serialNumber: "SLT-RTR-FH180-8812",
+    isSerialized: true,
+    quantity: 1,
+    unit: "UNITS",
+    accountNo: "0112789456",
+    customerName: "R. M. Bandara",
+    customerContact: "0714589210",
+    customerAddress: "No. 42/B, Peradeniya Rd, Kandy",
+    issuedBy: "Sunil P. (Field Tech)",
+    notes: "Fiber drop installation completed. Wi-Fi verified 50Mbps.",
+    status: "ACTIVE"
+  },
+  {
+    id: "ISS-20260604-002",
+    issueDate: "2026-06-04",
+    timestamp: "2026-06-04 14:30:00",
+    materialCode: "CPEFTH064S",
+    materialDescription: "GPON ONT (4FE+2TEL+WIFI) - HUAWEI HG8245H",
+    serialNumber: "SLT-ONT-8245H-9921",
+    isSerialized: true,
+    quantity: 1,
+    unit: "UNITS",
+    accountNo: "0112998314",
+    customerName: "Nimal Jayasuriya",
+    customerContact: "0773124590",
+    customerAddress: "18 Havelock Rd, Colombo 05",
+    issuedBy: "Mr. Kanishka",
+    notes: "ONT authenticated to OLT Port 02/01",
+    status: "ACTIVE"
+  },
+  {
+    id: "ISS-20260605-003",
+    issueDate: "2026-06-05",
+    timestamp: "2026-06-05 09:45:00",
+    materialCode: "CPESTB031V",
+    materialDescription: "IPTV SET-TOP-BOX (4K) - PEO TV V3",
+    serialNumber: "SLT-STB-PEO4K-3341",
+    isSerialized: true,
+    quantity: 1,
+    unit: "UNITS",
+    accountNo: "0112445123",
+    customerName: "Kavindu Senanayake",
+    customerContact: "0702154879",
+    customerAddress: "75 Temple Rd, Maharagama",
+    issuedBy: "Sunil P. (Field Tech)",
+    notes: "Direct customer premises return due to package downgrade.",
+    status: "RETURNED_DIRECT",
+    returnDate: "2026-06-12",
+    returnType: "TCOPNC-C",
+    returnCondition: "GOOD_REUSABLE",
+    returnNotes: "Returned directly to depot by customer. Device tested OK and credited to Collective stock.",
+    returnedBy: "Sunil P. (Field Tech)"
+  },
+  {
+    id: "ISS-20260528-004",
+    issueDate: "2026-05-28",
+    timestamp: "2026-05-28 16:20:00",
+    materialCode: "CPERTR045S",
+    materialDescription: "ROUTER 4-PORT (WI-FI) - ZTE F670L DUAL BAND",
+    serialNumber: "SLT-ZTE-F670L-5520",
+    isSerialized: true,
+    quantity: 1,
+    unit: "UNITS",
+    accountNo: "0112887612",
+    customerName: "Anura Gunawardena",
+    customerContact: "0729988114",
+    customerAddress: "89 Galle Rd, Dehiwala",
+    issuedBy: "Mr. Kanishka",
+    notes: "Surge damaged unit replaced and sent to repair.",
+    status: "RETURNED_WORKSHOP",
+    returnDate: "2026-06-14",
+    returnType: "TCOPNC-R",
+    returnCondition: "FAULTY_REPAIR",
+    returnNotes: "Refurbished at central workshop and returned back to depot stock.",
+    returnedBy: "Mr. Kanishka"
+  },
+  {
+    id: "ISS-20260608-005",
+    issueDate: "2026-06-08",
+    timestamp: "2026-06-08 11:10:00",
+    materialCode: "CABFTH038",
+    materialDescription: "FIBER DROP CABLE 1-CORE G657A2 (BOW-TYPE)",
+    serialNumber: void 0,
+    isSerialized: false,
+    quantity: 85,
+    unit: "METERS",
+    accountNo: "0112789456",
+    customerName: "R. M. Bandara",
+    customerContact: "0714589210",
+    customerAddress: "No. 42/B, Peradeniya Rd, Kandy",
+    issuedBy: "Sunil P. (Field Tech)",
+    notes: "Drop cable aerial span from DP-KND-09 to customer premise.",
+    status: "ACTIVE"
+  }
+];
+var INITIAL_TRANSFERS = [
+  {
+    id: "TR-2026-001",
+    moveOrderNo: "MO-2026-0812",
+    transferDate: "2026-06-15",
+    timestamp: "2026-06-15 11:30:00",
+    subCategory: "TCOPNC",
+    mainCategory: "New Connection",
+    materialCode: "CPERTR045S",
+    materialDescription: "ADSL ROUTER 4-PORT (WI-FI) - PROLINK PRS1140 (DOT LOGO)",
+    quantity: 2,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-RTR-PL1140-01", "SLT-RTR-PL1140-02"],
+    destinationDistrict: "Kandy",
+    destinationBranch: "SLT Regional Telecom Office - Kandy Peradeniya Rd",
+    dispatchOfficer: "Mr. Kanishka",
+    carrierVehicle: "WP-CAD-8812 (SLT Fleet Van)",
+    notes: "Urgent stock balancing for fiber rollout in Kandy Central.",
+    status: "DELIVERED"
+  },
+  {
+    id: "TR-2026-002",
+    moveOrderNo: "MO-2026-0824",
+    transferDate: "2026-06-18",
+    timestamp: "2026-06-18 14:15:00",
+    subCategory: "TCOPNC-C",
+    mainCategory: "New Connection",
+    materialCode: "CPEFTH055S",
+    materialDescription: "ECHOLIFE HG8145V5 ONT BASE UNIT (HUAWEI) (CUSTOMER COLLECTIVE)",
+    quantity: 5,
+    unit: "UNITS",
+    isSerialized: true,
+    serialNumbers: ["SLT-ONT-HW8145-COL-01", "SLT-ONT-HW8145-COL-02"],
+    destinationDistrict: "Galle",
+    destinationBranch: "SLT Regional Telecom Center - Galle",
+    dispatchOfficer: "Sunil P. (Field Tech)",
+    carrierVehicle: "WP-CB-4490 (Courier Logistics)",
+    notes: "Transfer of tested customer collected units for churn redeployment.",
+    status: "IN_TRANSIT"
+  },
+  {
+    id: "TR-2026-003",
+    moveOrderNo: "MO-2026-0899",
+    transferDate: "2026-06-20",
+    timestamp: "2026-06-20 09:40:00",
+    subCategory: "TC-OPCDR",
+    mainCategory: "Rehabilitation",
+    materialCode: "CABFTH001",
+    materialDescription: "OPTICAL FIBER CABLE 48F SM AERIAL",
+    quantity: 350,
+    unit: "METERS",
+    isSerialized: false,
+    destinationDistrict: "Kurunegala",
+    destinationBranch: "SLT Central Depot - Kurunegala",
+    dispatchOfficer: "Mr. Kanishka",
+    carrierVehicle: "CP-LH-1204 (Heavy Transport)",
+    notes: "Rehab restoration cable dispatched as per Move Order allocation.",
+    status: "DISPATCHED"
+  }
+];
+var StorageService = class {
+  /**
+   * Check if online or simulated offline
+   */
+  isOffline() {
+    if (typeof window === "undefined") return false;
+    const simulated = localStorage.getItem(STORAGE_KEYS.IS_OFFLINE_SIMULATED) === "true";
+    return simulated || !navigator.onLine;
+  }
+  setSimulatedOffline(value) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.IS_OFFLINE_SIMULATED, String(value));
+  }
+  getHighContrast() {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(STORAGE_KEYS.HIGH_CONTRAST) === "true";
+  }
+  setHighContrast(value) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.HIGH_CONTRAST, String(value));
+  }
+  getActiveUser() {
+    if (typeof window === "undefined") return INITIAL_USERS[0];
+    const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_USER);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+      }
+    }
+    return INITIAL_USERS[0];
+  }
+  setActiveUser(user) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(user));
+  }
+  getInventory() {
+    if (typeof window === "undefined") return INITIAL_INVENTORY;
+    const saved = localStorage.getItem(STORAGE_KEYS.INVENTORY);
+    if (!saved) {
+      this.saveInventory(INITIAL_INVENTORY);
+      return INITIAL_INVENTORY;
+    }
+    try {
+      let items = JSON.parse(saved);
+      let needsSave = false;
+      const hasDostocksColl = items.some((i) => i.subCategory === "TCOPNC-C" && i.materialCode === "CPEFTH055S");
+      if (!hasDostocksColl) {
+        const withoutOldColl = items.filter((i) => i.subCategory !== "TCOPNC-C");
+        const collItems = INITIAL_INVENTORY.filter((i) => i.subCategory === "TCOPNC-C");
+        items = [...withoutOldColl, ...collItems];
+        needsSave = true;
+      }
+      const hasDostocksRet = items.some((i) => i.subCategory === "TCOPNC-R" && i.materialCode === "OSPACC016");
+      if (!hasDostocksRet) {
+        const withoutOldRet = items.filter((i) => i.subCategory !== "TCOPNC-R");
+        const retItems = INITIAL_INVENTORY.filter((i) => i.subCategory === "TCOPNC-R");
+        items = [...withoutOldRet, ...retItems];
+        needsSave = true;
+      }
+      const hasDostocksReh = items.some((i) => i.subCategory === "TC-OPCDR" && i.id === "reh-86");
+      if (!hasDostocksReh) {
+        const withoutOldReh = items.filter((i) => i.subCategory !== "TC-OPCDR");
+        const rehItems = INITIAL_INVENTORY.filter((i) => i.subCategory === "TC-OPCDR");
+        items = [...withoutOldReh, ...rehItems];
+        needsSave = true;
+      }
+      const hasDostocksRehRet = items.some((i) => i.subCategory === "TC-OPCDR-R" && i.id === "reh-ret-10");
+      if (!hasDostocksRehRet) {
+        const withoutOldRehRet = items.filter((i) => i.subCategory !== "TC-OPCDR-R");
+        const rehRetItems = INITIAL_INVENTORY.filter((i) => i.subCategory === "TC-OPCDR-R");
+        items = [...withoutOldRehRet, ...rehRetItems];
+        needsSave = true;
+      }
+      const hasDostocksNc = items.some((i) => i.subCategory === "TCOPNC" && i.id === "nc-56");
+      if (!hasDostocksNc) {
+        const withoutOldNc = items.filter((i) => i.subCategory !== "TCOPNC");
+        const ncItems = INITIAL_INVENTORY.filter((i) => i.subCategory === "TCOPNC");
+        items = [...withoutOldNc, ...ncItems];
+        needsSave = true;
+      }
+      if (needsSave) {
+        this.saveInventory(items);
+      }
+      return items;
+    } catch {
+      return INITIAL_INVENTORY;
+    }
+  }
+  updateItemStockStages(itemId, stages) {
+    const items = this.getInventory();
+    const idx = items.findIndex((i) => i.id === itemId);
+    if (idx >= 0) {
+      items[idx] = {
+        ...items[idx],
+        ...stages,
+        lastUpdated: (/* @__PURE__ */ new Date()).toISOString().slice(0, 16).replace("T", " ")
+      };
+      this.saveInventory(items);
+    }
+    return items;
+  }
+  saveInventory(items) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(items));
+    pushInventoryToFirestore(items).catch(
+      (err) => console.warn("[Firestore] Inventory sync failed:", err)
+    );
+  }
+  getLedger() {
+    if (typeof window === "undefined") return INITIAL_LEDGER;
+    const saved = localStorage.getItem(STORAGE_KEYS.LEDGER);
+    if (!saved) {
+      this.saveLedger(INITIAL_LEDGER);
+      return INITIAL_LEDGER;
+    }
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return INITIAL_LEDGER;
+    }
+  }
+  saveLedger(txs) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.LEDGER, JSON.stringify(txs));
+    pushLedgerToFirestore(txs).catch(
+      (err) => console.warn("[Firestore] Ledger sync failed:", err)
+    );
+  }
+  getOfflineQueue() {
+    if (typeof window === "undefined") return [];
+    const saved = localStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
+    if (!saved) return [];
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return [];
+    }
+  }
+  saveOfflineQueue(queue) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(queue));
+  }
+  /**
+   * Commit a transaction:
+   * 1. Updates inventory counts and serials
+   * 2. Adds transaction to ledger or offline queue
+   */
+  executeTransaction(txData) {
+    const isOffline = this.isOffline();
+    const syncStatus = isOffline ? "QUEUED_OFFLINE" : "SYNCED";
+    const now = /* @__PURE__ */ new Date();
+    const pad = (n) => n.toString().padStart(2, "0");
+    const timePart = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const datePart = txData.entryDate || `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const timestamp = `${datePart} ${timePart}`;
+    const tx = {
+      ...txData,
+      id: `TX-${Date.now()}-${Math.floor(Math.random() * 1e3)}`,
+      timestamp,
+      syncStatus
+    };
+    const inventory = this.getInventory();
+    const itemIndex = inventory.findIndex(
+      (item) => item.materialCode.toUpperCase() === tx.materialCode.toUpperCase() && item.subCategory === tx.subCategory
+    );
+    if (itemIndex >= 0) {
+      const item = { ...inventory[itemIndex] };
+      item.quantity = Math.max(0, item.quantity + tx.quantityDelta);
+      item.lastUpdated = timestamp.slice(0, 16);
+      if (item.isSerialized && tx.serialNumber) {
+        const serials = item.serialNumbers ? [...item.serialNumbers] : [];
+        if (tx.quantityDelta < 0) {
+          const sIdx = serials.indexOf(tx.serialNumber);
+          if (sIdx >= 0) serials.splice(sIdx, 1);
+        } else if (tx.quantityDelta > 0) {
+          if (!serials.includes(tx.serialNumber)) {
+            serials.push(tx.serialNumber);
+          }
+        }
+        item.serialNumbers = serials;
+        item.quantity = serials.length;
+      }
+      inventory[itemIndex] = item;
+    } else if (tx.quantityDelta > 0) {
+      const newItem = {
+        id: `item-${Date.now()}`,
+        materialCode: tx.materialCode.toUpperCase(),
+        description: tx.materialDescription || tx.materialCode,
+        subCategory: tx.subCategory,
+        mainCategory: tx.mainCategory,
+        quantity: tx.quantityDelta,
+        unit: tx.unit || "PCS",
+        isSerialized: Boolean(tx.serialNumber),
+        serialNumbers: tx.serialNumber ? [tx.serialNumber] : void 0,
+        minThreshold: 5,
+        lastUpdated: timestamp.slice(0, 16),
+        binLocation: tx.locatorId || "DEFAULT-BIN"
+      };
+      inventory.push(newItem);
+    }
+    this.saveInventory(inventory);
+    const ledger = this.getLedger();
+    ledger.unshift(tx);
+    this.saveLedger(ledger);
+    if (isOffline) {
+      const queue = this.getOfflineQueue();
+      queue.push(tx);
+      this.saveOfflineQueue(queue);
+    }
+    return { transaction: tx, isQueuedOffline: isOffline };
+  }
+  /**
+   * Customer Issuances Management
+   */
+  getCustomerIssuances() {
+    if (typeof window === "undefined") return INITIAL_CUSTOMER_ISSUANCES;
+    const saved = localStorage.getItem(STORAGE_KEYS.CUSTOMER_ISSUANCES);
+    if (!saved) {
+      this.saveCustomerIssuances(INITIAL_CUSTOMER_ISSUANCES);
+      return INITIAL_CUSTOMER_ISSUANCES;
+    }
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return INITIAL_CUSTOMER_ISSUANCES;
+    }
+  }
+  saveCustomerIssuances(issuances) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.CUSTOMER_ISSUANCES, JSON.stringify(issuances));
+    pushIssuancesToFirestore(issuances).catch(
+      (err) => console.warn("[Firestore] Customer Issuances sync failed:", err)
+    );
+  }
+  addCustomerIssuance(issuance) {
+    const list = this.getCustomerIssuances();
+    list.unshift(issuance);
+    this.saveCustomerIssuances(list);
+  }
+  /**
+   * Process a customer equipment return / collection:
+   * Per user requirement:
+   * - "here collective means direct collect from the customer"
+   * - "retunr means from the workshops return"
+   * - "when the customer details clicked the return its directly need to add under the collective only (TCOPNC-C)"
+   */
+  processCustomerReturn(params) {
+    const {
+      issuanceId,
+      materialCode,
+      materialDescription,
+      serialNumber,
+      quantity,
+      unit = "UNITS",
+      returnType = "TCOPNC-C",
+      // Strictly Collective for direct customer returns!
+      returnDate,
+      itemCondition,
+      accountNo,
+      customerName,
+      returnNotes,
+      operatorName,
+      operatorId
+    } = params;
+    const issuances = this.getCustomerIssuances();
+    let updatedIssuance;
+    const targetIdx = issuanceId ? issuances.findIndex((i) => i.id === issuanceId) : issuances.findIndex(
+      (i) => i.status === "ACTIVE" && (serialNumber && i.serialNumber === serialNumber || i.accountNo === accountNo && i.materialCode === materialCode)
+    );
+    if (targetIdx >= 0) {
+      issuances[targetIdx] = {
+        ...issuances[targetIdx],
+        status: "RETURNED_DIRECT",
+        returnDate,
+        returnType,
+        returnCondition: itemCondition,
+        returnNotes,
+        returnedBy: operatorName
+      };
+      updatedIssuance = issuances[targetIdx];
+      this.saveCustomerIssuances(issuances);
+    }
+    const desc = materialDescription || (updatedIssuance?.materialDescription ?? materialCode);
+    const result = this.executeTransaction({
+      userId: operatorId,
+      userName: operatorName,
+      actionType: "CUSTOMER_COLLECT",
+      mainCategory: "New Connection",
+      subCategory: returnType,
+      // 'TCOPNC-C'
+      materialCode: materialCode.toUpperCase(),
+      materialDescription: desc,
+      quantityDelta: quantity,
+      unit,
+      serialNumber: serialNumber?.trim() || void 0,
+      accountNo,
+      customerName,
+      entryDate: returnDate,
+      itemCondition,
+      reasonCode: "Direct Customer Collection to Collective (TCOPNC-C)",
+      notes: `Condition: ${itemCondition} | Directly collected from customer A/C ${accountNo} into Collective Stock (TCOPNC-C) | ${returnNotes || ""}`.trim()
+    });
+    return { transaction: result.transaction, updatedIssuance };
+  }
+  /**
+   * Product Management: Add New Product across any of the 5 categories
+   */
+  addProduct(itemData, operatorName = "Mr. Kanishka", operatorId = "USR-KANISHKA") {
+    const inventory = this.getInventory();
+    const cleanCode = itemData.materialCode.toUpperCase().trim();
+    const existingIdx = inventory.findIndex(
+      (i) => i.materialCode.toUpperCase() === cleanCode && i.subCategory === itemData.subCategory
+    );
+    const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    let finalItem;
+    if (existingIdx >= 0) {
+      const existing = inventory[existingIdx];
+      const mergedSerials = itemData.serialNumbers ? Array.from(/* @__PURE__ */ new Set([...existing.serialNumbers || [], ...itemData.serialNumbers])) : existing.serialNumbers;
+      finalItem = {
+        ...existing,
+        ...itemData,
+        id: existing.id,
+        quantity: existing.quantity + itemData.quantity,
+        serialNumbers: mergedSerials,
+        lastUpdated: today
+      };
+      inventory[existingIdx] = finalItem;
+    } else {
+      finalItem = {
+        ...itemData,
+        id: itemData.id || `item-prod-${Date.now()}-${Math.floor(Math.random() * 1e3)}`,
+        materialCode: cleanCode,
+        quantity: Math.max(0, itemData.quantity || 0),
+        receiving: itemData.receiving || 0,
+        inbound: itemData.inbound || 0,
+        minThreshold: itemData.minThreshold ?? 5,
+        binLocation: itemData.binLocation || "BIN-01",
+        lastUpdated: today
+      };
+      inventory.unshift(finalItem);
+    }
+    this.saveInventory(inventory);
+    const now = /* @__PURE__ */ new Date();
+    const pad = (n) => n.toString().padStart(2, "0");
+    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const tx = {
+      id: `TX-ADD-${Date.now()}`,
+      timestamp,
+      entryDate: today,
+      userId: operatorId,
+      userName: operatorName,
+      actionType: "PRODUCT_CREATE",
+      mainCategory: finalItem.mainCategory,
+      subCategory: finalItem.subCategory,
+      materialCode: finalItem.materialCode,
+      materialDescription: finalItem.description,
+      quantityDelta: finalItem.quantity,
+      unit: finalItem.unit,
+      notes: `New product SKU added: ${finalItem.materialCode} in ${finalItem.subCategory} category (${finalItem.quantity} ${finalItem.unit}).`,
+      syncStatus: this.isOffline() ? "QUEUED_OFFLINE" : "SYNCED"
+    };
+    const ledger = this.getLedger();
+    ledger.unshift(tx);
+    this.saveLedger(ledger);
+    return finalItem;
+  }
+  /**
+   * Product Management: Edit Product
+   */
+  updateProduct(id, updates, operatorName = "Mr. Kanishka", operatorId = "USR-KANISHKA") {
+    const inventory = this.getInventory();
+    const idx = inventory.findIndex((i) => i.id === id);
+    if (idx < 0) {
+      throw new Error(`Product with ID "${id}" was not found in active inventory.`);
+    }
+    const oldItem = inventory[idx];
+    const oldQty = oldItem.quantity;
+    const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    const updatedItem = {
+      ...oldItem,
+      ...updates,
+      materialCode: (updates.materialCode || oldItem.materialCode).toUpperCase().trim(),
+      lastUpdated: today
+    };
+    if (updatedItem.isSerialized && updatedItem.serialNumbers && updatedItem.serialNumbers.length > 0) {
+      updatedItem.quantity = updatedItem.serialNumbers.length;
+    }
+    inventory[idx] = updatedItem;
+    this.saveInventory(inventory);
+    const delta = (updatedItem.quantity ?? oldQty) - oldQty;
+    const now = /* @__PURE__ */ new Date();
+    const pad = (n) => n.toString().padStart(2, "0");
+    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const tx = {
+      id: `TX-EDIT-${Date.now()}`,
+      timestamp,
+      entryDate: today,
+      userId: operatorId,
+      userName: operatorName,
+      actionType: "PRODUCT_UPDATE",
+      mainCategory: updatedItem.mainCategory,
+      subCategory: updatedItem.subCategory,
+      materialCode: updatedItem.materialCode,
+      materialDescription: updatedItem.description,
+      quantityDelta: delta,
+      unit: updatedItem.unit,
+      notes: `Product updated: ${updatedItem.materialCode} (Stock changed by ${delta >= 0 ? "+" : ""}${delta} ${updatedItem.unit}).`,
+      syncStatus: this.isOffline() ? "QUEUED_OFFLINE" : "SYNCED"
+    };
+    const ledger = this.getLedger();
+    ledger.unshift(tx);
+    this.saveLedger(ledger);
+    return updatedItem;
+  }
+  /**
+   * Product Management: Delete Product
+   */
+  deleteProduct(id, operatorName = "Mr. Kanishka", operatorId = "USR-KANISHKA") {
+    const inventory = this.getInventory();
+    const target = inventory.find((i) => i.id === id);
+    if (!target) return false;
+    const now = /* @__PURE__ */ new Date();
+    const pad = (n) => n.toString().padStart(2, "0");
+    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const timestamp = `${today} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const tx = {
+      id: `TX-DEL-${Date.now()}`,
+      timestamp,
+      entryDate: today,
+      userId: operatorId,
+      userName: operatorName,
+      actionType: "PRODUCT_DELETE",
+      mainCategory: target.mainCategory,
+      subCategory: target.subCategory,
+      materialCode: target.materialCode,
+      materialDescription: target.description,
+      quantityDelta: -target.quantity,
+      unit: target.unit,
+      notes: `Product SKU deleted: ${target.materialCode} (${target.description}) removed from ${target.subCategory}.`,
+      syncStatus: this.isOffline() ? "QUEUED_OFFLINE" : "SYNCED"
+    };
+    const updated = inventory.filter((i) => i.id !== id);
+    this.saveInventory(updated);
+    const ledger = this.getLedger();
+    ledger.unshift(tx);
+    this.saveLedger(ledger);
+    return true;
+  }
+  /**
+   * Inter-Branch & Inter-District Stock Transfers (Move Order #)
+   */
+  getTransfers() {
+    if (typeof window === "undefined") return INITIAL_TRANSFERS;
+    const saved = localStorage.getItem(STORAGE_KEYS.TRANSFERS);
+    if (!saved) {
+      this.saveTransfers(INITIAL_TRANSFERS);
+      return INITIAL_TRANSFERS;
+    }
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return INITIAL_TRANSFERS;
+    }
+  }
+  saveTransfers(transfers) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify(transfers));
+    pushTransfersToFirestore(transfers).catch(
+      (err) => console.warn("[Firestore] Transfers sync failed:", err)
+    );
+  }
+  /**
+   * Execute an Inter-Branch / Inter-District Transfer across any of the 5 categories
+   * Decrements stock and creates an immutable Move Order record and Ledger transaction.
+   */
+  executeTransfer(params) {
+    const {
+      moveOrderNo,
+      subCategory,
+      materialCode,
+      quantity,
+      serialNumbers = [],
+      destinationDistrict,
+      destinationBranch,
+      dispatchOfficer,
+      carrierVehicle,
+      notes,
+      transferDate = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10),
+      operatorId = "USR-KANISHKA",
+      operatorName = "Mr. Kanishka"
+    } = params;
+    if (!moveOrderNo || !moveOrderNo.trim()) {
+      throw new Error("Move Order Number is mandatory for stock transfers.");
+    }
+    if (quantity <= 0) {
+      throw new Error("Transfer quantity must be greater than zero.");
+    }
+    const inventory = this.getInventory();
+    const itemIndex = inventory.findIndex(
+      (i) => i.subCategory === subCategory && i.materialCode.toUpperCase() === materialCode.toUpperCase().trim()
+    );
+    if (itemIndex < 0) {
+      throw new Error(`Material "${materialCode}" was not found in category "${subCategory}".`);
+    }
+    const item = inventory[itemIndex];
+    if (item.quantity < quantity) {
+      throw new Error(
+        `Insufficient on-hand stock for ${item.materialCode}. Available: ${item.quantity} ${item.unit}, Requested: ${quantity} ${item.unit}.`
+      );
+    }
+    item.quantity -= quantity;
+    item.lastUpdated = transferDate;
+    if (item.isSerialized && serialNumbers.length > 0) {
+      const serialSet = new Set(serialNumbers);
+      item.serialNumbers = (item.serialNumbers || []).filter((s) => !serialSet.has(s));
+      item.quantity = item.serialNumbers.length;
+    }
+    inventory[itemIndex] = item;
+    this.saveInventory(inventory);
+    const now = /* @__PURE__ */ new Date();
+    const pad = (n) => n.toString().padStart(2, "0");
+    const timestamp = `${transferDate} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const transfer = {
+      id: `TR-${Date.now()}-${Math.floor(Math.random() * 1e3)}`,
+      moveOrderNo: moveOrderNo.trim().toUpperCase(),
+      transferDate,
+      timestamp,
+      subCategory,
+      mainCategory: item.mainCategory,
+      materialCode: item.materialCode,
+      materialDescription: item.description,
+      quantity,
+      unit: item.unit,
+      isSerialized: item.isSerialized,
+      serialNumbers: serialNumbers.length > 0 ? serialNumbers : void 0,
+      destinationDistrict,
+      destinationBranch,
+      dispatchOfficer,
+      carrierVehicle,
+      notes: notes?.trim() || `Inter-branch stock transfer to ${destinationBranch} (${destinationDistrict}) under Move Order #${moveOrderNo.trim().toUpperCase()}.`,
+      status: "DISPATCHED"
+    };
+    const transfers = this.getTransfers();
+    transfers.unshift(transfer);
+    this.saveTransfers(transfers);
+    const tx = {
+      id: `TX-TR-${Date.now()}`,
+      timestamp,
+      entryDate: transferDate,
+      userId: operatorId,
+      userName: operatorName,
+      actionType: "INTER_BRANCH_TRANSFER",
+      mainCategory: item.mainCategory,
+      subCategory: item.subCategory,
+      materialCode: item.materialCode,
+      materialDescription: item.description,
+      quantityDelta: -quantity,
+      unit: item.unit,
+      serialNumber: serialNumbers.length > 0 ? serialNumbers.join(", ") : void 0,
+      moveOrderNo: transfer.moveOrderNo,
+      destinationDistrict,
+      destinationBranch,
+      notes: `Move Order #${transfer.moveOrderNo} to ${destinationBranch} (${destinationDistrict})${carrierVehicle ? ` | Carrier: ${carrierVehicle}` : ""}`,
+      syncStatus: this.isOffline() ? "QUEUED_OFFLINE" : "SYNCED"
+    };
+    const ledger = this.getLedger();
+    ledger.unshift(tx);
+    this.saveLedger(ledger);
+    return { transfer, transaction: tx };
+  }
+  /**
+   * Sync all offline queued transactions when network is restored
+   */
+  syncOfflineQueue() {
+    const queue = this.getOfflineQueue();
+    if (queue.length === 0) return { syncedCount: 0 };
+    const ledger = this.getLedger();
+    const syncedIds = new Set(queue.map((q) => q.id));
+    const updatedLedger = ledger.map((item) => {
+      if (syncedIds.has(item.id)) {
+        return { ...item, syncStatus: "SYNCED" };
+      }
+      return item;
+    });
+    this.saveLedger(updatedLedger);
+    this.saveOfflineQueue([]);
+    return { syncedCount: queue.length };
+  }
+  /**
+   * Reset data to initial demo state
+   */
+  resetData() {
+    this.saveInventory(INITIAL_INVENTORY);
+    this.saveLedger(INITIAL_LEDGER);
+    this.saveCustomerIssuances(INITIAL_CUSTOMER_ISSUANCES);
+    this.saveTransfers(INITIAL_TRANSFERS);
+    this.saveOfflineQueue([]);
+  }
+  /**
+   * Authentication Session Management
+   */
+  getAuthSession() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.AUTH_SESSION);
+      return data ? JSON.parse(data) : null;
+    } catch {
+      return null;
+    }
+  }
+  isAuthenticated() {
+    return this.getAuthSession() !== null;
+  }
+  login(email, password) {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = password.trim();
+    if (cleanEmail === MOCK_AUTH_CREDENTIALS.email.toLowerCase() && cleanPass === MOCK_AUTH_CREDENTIALS.password) {
+      const session = {
+        email: cleanEmail,
+        name: MOCK_AUTH_CREDENTIALS.name,
+        loggedInAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      localStorage.setItem(STORAGE_KEYS.AUTH_SESSION, JSON.stringify(session));
+      const user = INITIAL_USERS.find((u) => u.id === "USR-KANISHKA") || INITIAL_USERS[0];
+      this.setActiveUser(user);
+      return { success: true, user };
+    }
+    return {
+      success: false,
+      error: "Invalid SLT credentials. Please use kanishka@slt.lk and password slt123."
+    };
+  }
+  logout() {
+    localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+  }
+};
+var storageService = new StorageService();
+
+// scripts/seedRunner.ts
+var firebaseConfig2 = {
+  apiKey: "AIzaSyDVfGttgp9uQogKTDBYzUknokJoXH-NZcs",
+  authDomain: "slt-matrix.firebaseapp.com",
+  projectId: "slt-matrix",
+  storageBucket: "slt-matrix.firebasestorage.app",
+  messagingSenderId: "596272385139",
+  appId: "1:596272385139:web:70df813556016361632e06",
+  measurementId: "G-ZJS6SW6MM5"
+};
+var app2 = initializeApp2(firebaseConfig2);
+var db2 = initializeFirestore2(app2, { ignoreUndefinedProperties: true });
+var clean = (item) => JSON.parse(JSON.stringify(item));
+async function batchPush(colName, items) {
+  const BATCH_SIZE2 = 400;
+  console.log(`Pushing ${items.length} items to collection '${colName}'...`);
+  for (let i = 0; i < items.length; i += BATCH_SIZE2) {
+    const chunk = items.slice(i, i + BATCH_SIZE2);
+    const batch = writeBatch2(db2);
+    for (const item of chunk) {
+      const docRef = doc3(db2, colName, item.id);
+      batch.set(docRef, clean(item));
+    }
+    await batch.commit();
+    console.log(`  -> Committed batch ${i + 1}..${Math.min(i + BATCH_SIZE2, items.length)} for ${colName}`);
+  }
+}
+async function main() {
+  try {
+    console.log("=== SLT MatriX Firestore Seeder ===");
+    await batchPush("inventory", INITIAL_INVENTORY);
+    await batchPush("ledger", INITIAL_LEDGER);
+    await batchPush("customerIssuances", INITIAL_CUSTOMER_ISSUANCES);
+    await batchPush("transfers", INITIAL_TRANSFERS);
+    console.log("\u{1F389} ALL DATA SEEDED SUCCESSFULLY TO FIRESTORE!");
+    process.exit(0);
+  } catch (err) {
+    console.error("\u274C Seeding failed:", err);
+    process.exit(1);
+  }
+}
+main();

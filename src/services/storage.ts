@@ -1,4 +1,10 @@
 import { InventoryItem, LedgerTransaction, SubCategoryCode, UserPersona, CustomerIssuance, StockTransfer } from '../types/inventory';
+import {
+  pushInventoryToFirestore,
+  pushLedgerToFirestore,
+  pushIssuancesToFirestore,
+  pushTransfersToFirestore,
+} from './firestoreService';
 
 const STORAGE_KEYS = {
   INVENTORY: 'slt_matrix_inventory_v4',
@@ -38,7 +44,7 @@ export const INITIAL_USERS: UserPersona[] = [
   },
 ];
 
-const INITIAL_INVENTORY: InventoryItem[] = [
+export const INITIAL_INVENTORY: InventoryItem[] = [
   // Standard New Connection (TCOPNC / TC-OPNC)
   // Official SLT-MOBITEL dostocks inventory records (56 items, 26,419.1 units):
   {
@@ -3097,7 +3103,7 @@ const INITIAL_INVENTORY: InventoryItem[] = [
   },
 ];
 
-const INITIAL_LEDGER: LedgerTransaction[] = [
+export const INITIAL_LEDGER: LedgerTransaction[] = [
   {
     id: 'tx-1001',
     timestamp: '2025-01-04 08:30:12',
@@ -3529,6 +3535,10 @@ class StorageService {
   saveInventory(items: InventoryItem[]) {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(items));
+    // Fire-and-forget Firestore sync
+    pushInventoryToFirestore(items).catch((err) =>
+      console.warn('[Firestore] Inventory sync failed:', err)
+    );
   }
 
   getLedger(): LedgerTransaction[] {
@@ -3548,6 +3558,10 @@ class StorageService {
   saveLedger(txs: LedgerTransaction[]) {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEYS.LEDGER, JSON.stringify(txs));
+    // Fire-and-forget Firestore sync
+    pushLedgerToFirestore(txs).catch((err) =>
+      console.warn('[Firestore] Ledger sync failed:', err)
+    );
   }
 
   getOfflineQueue(): LedgerTransaction[] {
@@ -3673,6 +3687,10 @@ class StorageService {
   saveCustomerIssuances(issuances: CustomerIssuance[]) {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEYS.CUSTOMER_ISSUANCES, JSON.stringify(issuances));
+    // Fire-and-forget Firestore sync
+    pushIssuancesToFirestore(issuances).catch((err) =>
+      console.warn('[Firestore] Customer Issuances sync failed:', err)
+    );
   }
 
   addCustomerIssuance(issuance: CustomerIssuance) {
@@ -3978,6 +3996,10 @@ class StorageService {
   saveTransfers(transfers: StockTransfer[]) {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify(transfers));
+    // Fire-and-forget Firestore sync
+    pushTransfersToFirestore(transfers).catch((err) =>
+      console.warn('[Firestore] Transfers sync failed:', err)
+    );
   }
 
   /**
