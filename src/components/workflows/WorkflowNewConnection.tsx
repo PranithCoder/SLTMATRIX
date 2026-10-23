@@ -31,6 +31,7 @@ import {
 import { InventoryItem, UserPersona, CustomerIssuance, SubCategoryCode, OpenScannerFn } from '../../types/inventory';
 import { storageService } from '../../services/storage';
 import { CustomerReturnModal } from './CustomerReturnModal';
+import { DuplicateWarningModal } from '../alerts/DuplicateWarningModal';
 import { extractSerialNumber, findEquipmentByBarcode } from '../../utils/barcodeParser';
 import confetti from 'canvas-confetti';
 
@@ -102,6 +103,12 @@ export const WorkflowNewConnection: React.FC<WorkflowNewConnectionProps> = ({
   );
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    isOpen: boolean;
+    type: 'SERIAL' | 'ACCOUNT' | 'BOTH';
+    value: string;
+    existingRecord: CustomerIssuance;
+  } | null>(null);
 
   // Tracker Filters
   const [trackerSearch, setTrackerSearch] = useState<string>('');
@@ -289,40 +296,12 @@ export const WorkflowNewConnection: React.FC<WorkflowNewConnectionProps> = ({
     document.body.removeChild(link);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setValidationError(null);
-
-    if (!selectedItem) {
-      setValidationError('Please select an equipment item.');
-      return;
-    }
-
-    if (!issueDate) {
-      setValidationError('Please select the date of issuance.');
-      return;
-    }
-
-    if (issueQuantity <= 0) {
-      setValidationError('Issuance quantity must be at least 1.');
-      return;
-    }
-
-    if (!accountNo.trim()) {
-      setValidationError('SLT Customer Account Number is required (e.g. 0112xxxxxx).');
-      return;
-    }
-
-    if (!customerName.trim()) {
-      setValidationError('Customer Name is required.');
-      return;
-    }
-
+  const executeAllocation = (forceBypass: boolean = false) => {
+    if (!selectedItem) return;
     const trimmedSerial = serialNumber.trim();
     const hasSerial = Boolean(trimmedSerial);
 
     setIsSubmitting(true);
-
     try {
       const result = storageService.executeTransaction({
         userId: activeUser.id,
@@ -338,7 +317,7 @@ export const WorkflowNewConnection: React.FC<WorkflowNewConnectionProps> = ({
         accountNo: accountNo.trim(),
         customerName: customerName.trim(),
         entryDate: issueDate,
-        notes: installationNotes.trim() || undefined,
+        notes: `${installationNotes.trim() || ''}${forceBypass ? ' [Admin Duplicate Bypass]' : ''}`.trim() || undefined,
       });
 
       // Save Customer Issuance Record
@@ -356,7 +335,7 @@ export const WorkflowNewConnection: React.FC<WorkflowNewConnectionProps> = ({
         customerName: customerName.trim(),
         customerContact: customerContact.trim() || undefined,
         issuedBy: activeUser.name,
-        notes: installationNotes.trim() || undefined,
+        notes: `${installationNotes.trim() || ''}${forceBypass ? ' [Authorized Duplicate Override]' : ''}`.trim() || undefined,
         status: 'ACTIVE',
       };
       storageService.addCustomerIssuance(newIssuance);
@@ -389,6 +368,108 @@ export const WorkflowNewConnection: React.FC<WorkflowNewConnectionProps> = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setValidationError(null);
+
+    if (!selectedItem) {
+      setValidationError('Please select an equipment item.');
+      return;
+    }
+
+    if (!issueDate) {
+      setValidationError('Please select the date of issuance.');
+      return;
+    }
+
+    if (issueQuantity <= 0) {
+      setValidationError('Issuance quantity must be at least 1.');
+      return;
+    }
+
+    if (!accountNo.trim()) {
+      setValidationError('SLT Customer Account Number is required (e.g. 0112xxxxxx).');
+      return;
+    }
+
+    if (!customerName.trim()) {
+      setValidationError('Customer Name is required.');
+      return;
+    }
+
+    const trimmedSerial = serialNumber.trim();
+    const hasSerial = Boolean(trimmedSerial);
+
+    // Duplicate Check against existing customer issuances
+    const issuances = storageService.getCustomerIssuances();
+    const cleanSerial = trimmedSerial.toLowerCase();
+    const cleanAcc = accountNo.trim().toLowerCase();
+
+    let matchedRecord: CustomerIssuance | undefined;
+    let dupSerial = false;
+    let dupAcc = false;
+
+    if (hasSerial) {
+      matchedRecord = issuances.find(
+        (i) => i.serialNumber && i.serialNumber.trim().toLowerCase() === cleanSerial
+      );
+      if (matchedRecord) dupSerial = true;
+    }
+
+    if (!matchedRecord && cleanAcc) {
+      matchedRecord = issuances.find(
+        (i) => i.accountNo && i.accountNo.trim().toLowerCase() === cleanAcc
+      );
+      if (matchedRecord) dupAcc = true;
+    } else if (matchedRecord && cleanAcc) {
+      if (matchedRecord.accountNo && matchedRecord.accountNo.trim().toLowerCase() === cleanAcc) {
+        dupAcc = true;
+      }
+    }
+
+    if (matchedRecord) {
+      const type: 'SERIAL' | 'ACCOUNT' | 'BOTH' =
+        dupSerial && dupAcc ? 'BOTH' : dupSerial ? 'SERIAL' : 'ACCOUNT';
+      const value = dupSerial ? trimmedSerial : accountNo.trim();
+
+      // Log high-priority system alert for Admin Mr. Kanishka
+      storageService.addSystemAlert({
+        type: dupSerial ? 'DUPLICATE_SERIAL' : 'DUPLICATE_CUSTOMER',
+        severity: 'CRITICAL',
+        userId: activeUser.id,
+        userName: activeUser.name,
+        serialNumber: hasSerial ? trimmedSerial : undefined,
+        accountNo: accountNo.trim(),
+        customerName: customerName.trim(),
+        materialCode: selectedItem.materialCode,
+        existingRecord: {
+          id: matchedRecord.id,
+          accountNo: matchedRecord.accountNo,
+          customerName: matchedRecord.customerName,
+          customerContact: matchedRecord.customerContact,
+          serialNumber: matchedRecord.serialNumber,
+          materialCode: matchedRecord.materialCode,
+          materialDescription: matchedRecord.materialDescription,
+          issueDate: matchedRecord.issueDate,
+          issuedBy: matchedRecord.issuedBy,
+          status: matchedRecord.status,
+        },
+      });
+
+      // Pop duplicate modal with existing customer details
+      setDuplicateWarning({
+        isOpen: true,
+        type,
+        value,
+        existingRecord: matchedRecord,
+      });
+      return;
+    }
+
+    // No duplicate found, proceed normally
+    executeAllocation(false);
   };
 
   const handleOpenReturnModal = (issuance: CustomerIssuance) => {
@@ -1673,6 +1754,22 @@ export const WorkflowNewConnection: React.FC<WorkflowNewConnectionProps> = ({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Duplicate Entry Warning Modal with Customer Details */}
+      {duplicateWarning && (
+        <DuplicateWarningModal
+          isOpen={duplicateWarning.isOpen}
+          onClose={() => setDuplicateWarning(null)}
+          onProceed={() => {
+            setDuplicateWarning(null);
+            executeAllocation(true);
+          }}
+          duplicateType={duplicateWarning.type}
+          duplicateValue={duplicateWarning.value}
+          existingRecord={duplicateWarning.existingRecord}
+          operatorName={activeUser.name}
+        />
       )}
     </div>
   );

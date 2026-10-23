@@ -177,9 +177,42 @@ export interface ParsedBatchCode {
 export interface UserPersona {
   id: string;
   name: string;
-  role: 'ADMIN_IBT' | 'FIELD_TECH';
+  email: string;
+  password?: string;
+  role: 'ADMIN_IBT' | 'FIELD_TECH' | 'OPERATOR';
   title: string;
   branch: string;
+  isOnline?: boolean;
+  lastActive?: string;
+  createdDate?: string;
+}
+
+export interface SystemAlert {
+  id: string;
+  timestamp: string;
+  type: 'DUPLICATE_SERIAL' | 'DUPLICATE_CUSTOMER';
+  severity: 'HIGH' | 'CRITICAL';
+  userId: string;
+  userName: string;
+  materialCode?: string;
+  serialNumber?: string;
+  accountNo?: string;
+  customerName?: string;
+  existingRecord?: {
+    id: string;
+    accountNo: string;
+    customerName: string;
+    customerContact?: string;
+    serialNumber?: string;
+    materialCode: string;
+    materialDescription: string;
+    issueDate: string;
+    issuedBy: string;
+    status: string;
+  };
+  resolved: boolean;
+  resolvedAt?: string;
+  resolvedBy?: string;
 }
 
 export type OpenScannerFn = (
@@ -187,4 +220,5 @@ export type OpenScannerFn = (
   callback?: (scannedText: string, allScanned?: string[]) => void,
   batchMode?: boolean
 ) => void;
+
 

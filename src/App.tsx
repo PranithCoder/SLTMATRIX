@@ -30,6 +30,8 @@ import { DeleteConfirmModal } from './components/common/DeleteConfirmModal';
 import { StockTransferModal } from './components/workflows/StockTransferModal';
 import { LoginPage } from './components/auth/LoginPage';
 import { ScannedResultModal } from './components/scanner/ScannedResultModal';
+import { UserManagementModal } from './components/users/UserManagementModal';
+import { AdminAlertsModal } from './components/alerts/AdminAlertsModal';
 
 import { storageService } from './services/storage';
 import { InventoryItem, LedgerTransaction, UserPersona, SubCategoryCode, OpenScannerFn } from './types/inventory';
@@ -42,9 +44,15 @@ export const App: React.FC = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [ledger, setLedger] = useState<LedgerTransaction[]>([]);
   const [activeUser, setActiveUser] = useState<UserPersona>(storageService.getActiveUser());
+  const [usersList, setUsersList] = useState<UserPersona[]>(() => storageService.getUsers());
+  const [unreadAlertsCount, setUnreadAlertsCount] = useState<number>(() => storageService.getUnreadAlertsCount());
   const [isOffline, setIsOffline] = useState<boolean>(storageService.isOffline());
   const [queuedCount, setQueuedCount] = useState<number>(0);
   const [isHighContrast, setIsHighContrast] = useState<boolean>(storageService.getHighContrast());
+
+  // Admin Modals
+  const [isUserModalOpen, setIsUserModalOpen] = useState<boolean>(false);
+  const [isAlertsModalOpen, setIsAlertsModalOpen] = useState<boolean>(false);
 
   // Scanner modal state
   const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
@@ -86,6 +94,8 @@ export const App: React.FC = () => {
     setLedger(storageService.getLedger());
     setQueuedCount(storageService.getOfflineQueue().length);
     setIsOffline(storageService.isOffline());
+    setUsersList(storageService.getUsers());
+    setUnreadAlertsCount(storageService.getUnreadAlertsCount());
   }, []);
 
   // Initialize data on mount
@@ -241,18 +251,30 @@ export const App: React.FC = () => {
   };
 
   const handleOpenAddProduct = (category?: SubCategoryCode) => {
+    if (activeUser.role !== 'ADMIN_IBT') {
+      showToast('Permission Denied: Only Super Admin Mr. Kanishka can add new items to the master catalog.', 'error');
+      return;
+    }
     setEditingProductItem(null);
     setDefaultProductCategory(category || 'TCOPNC');
     setIsProductModalOpen(true);
   };
 
   const handleOpenEditProduct = (item: InventoryItem) => {
+    if (activeUser.role !== 'ADMIN_IBT') {
+      showToast('Permission Denied: Only Super Admin Mr. Kanishka has authority to edit master catalog items.', 'error');
+      return;
+    }
     setEditingProductItem(item);
     setDefaultProductCategory(item.subCategory);
     setIsProductModalOpen(true);
   };
 
   const handleOpenDeleteProduct = (item: InventoryItem) => {
+    if (activeUser.role !== 'ADMIN_IBT') {
+      showToast('Permission Denied: Only Super Admin Mr. Kanishka has authority to delete catalog records.', 'error');
+      return;
+    }
     setItemToDelete(item);
     setIsDeleteModalOpen(true);
   };
@@ -293,6 +315,12 @@ export const App: React.FC = () => {
         onToggleHighContrast={handleToggleHighContrast}
         onOpenScanner={() => handleOpenScanner()}
         onLogout={handleLogout}
+        onOpenUserManagement={() => setIsUserModalOpen(true)}
+        onOpenAlerts={() => setIsAlertsModalOpen(true)}
+        unreadAlertsCount={unreadAlertsCount}
+        onlineUsersCount={usersList.filter(u => u.isOnline).length}
+        totalUsersCount={usersList.length}
+        usersList={usersList}
       />
 
       {/* Main Content Area */}
@@ -546,6 +574,26 @@ export const App: React.FC = () => {
         preselectedItem={itemToTransfer}
         onOpenScanner={handleOpenScanner}
       />
+
+      {/* Kanishka Super Admin User Matrix & Live Online Status Modal */}
+      {isUserModalOpen && (
+        <UserManagementModal
+          isOpen={isUserModalOpen}
+          onClose={() => setIsUserModalOpen(false)}
+          currentUser={activeUser}
+          onUsersUpdated={refreshData}
+        />
+      )}
+
+      {/* Kanishka Super Admin Duplicate & Security Alerts Modal */}
+      {isAlertsModalOpen && (
+        <AdminAlertsModal
+          isOpen={isAlertsModalOpen}
+          onClose={() => setIsAlertsModalOpen(false)}
+          currentUser={activeUser}
+          onAlertsUpdated={refreshData}
+        />
+      )}
 
       {/* Toast Notification Banner */}
       {toast && (

@@ -1,7 +1,17 @@
 import React from 'react';
-import { Wifi, WifiOff, Sun, UserCheck, RefreshCw, QrCode, LogOut } from 'lucide-react';
+import {
+  Wifi,
+  WifiOff,
+  Sun,
+  UserCheck,
+  RefreshCw,
+  LogOut,
+  Users,
+  Bell,
+  ShieldCheck,
+  Radio
+} from 'lucide-react';
 import { UserPersona } from '../../types/inventory';
-import { INITIAL_USERS } from '../../services/storage';
 
 interface HeaderProps {
   activeUser: UserPersona;
@@ -14,6 +24,12 @@ interface HeaderProps {
   onToggleHighContrast: () => void;
   onOpenScanner?: () => void;
   onLogout?: () => void;
+  onOpenUserManagement?: () => void;
+  onOpenAlerts?: () => void;
+  unreadAlertsCount?: number;
+  onlineUsersCount?: number;
+  totalUsersCount?: number;
+  usersList?: UserPersona[];
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -26,7 +42,15 @@ export const Header: React.FC<HeaderProps> = ({
   isHighContrast,
   onToggleHighContrast,
   onLogout,
+  onOpenUserManagement,
+  onOpenAlerts,
+  unreadAlertsCount = 0,
+  onlineUsersCount = 1,
+  totalUsersCount = 6,
+  usersList = [],
 }) => {
+  const isAdmin = activeUser.role === 'ADMIN_IBT';
+
   return (
     <header className="slt-header">
       <div className="slt-header-inner">
@@ -60,39 +84,148 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Action Controls (Scanner removed from top nav, accessible via bottom nav) */}
+        {/* Action Controls */}
         <div className="slt-header-actions">
-          {/* User Persona Switcher */}
-          <div style={{ position: 'relative' }}>
-            <select
-              value={activeUser.id}
-              onChange={(e) => {
-                const selected = INITIAL_USERS.find((u) => u.id === e.target.value);
-                if (selected) onSelectUser(selected);
-              }}
-              aria-label="Active Operator Profile"
-              className="header-user-select"
+          {/* Admin Exclusive: Live Team Online Tracker & User Management Modal */}
+          {isAdmin && onOpenUserManagement && (
+            <button
+              onClick={onOpenUserManagement}
+              className="btn btn-outline"
               style={{
                 height: 36,
-                padding: '0 8px',
+                minHeight: 36,
+                padding: '0 10px',
                 borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-color)',
-                backgroundColor: '#FFFFFF',
-                color: 'var(--text-primary)',
+                backgroundColor: '#0F172A',
+                borderColor: '#334155',
+                color: '#E2E8F0',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+              title="Team Matrix & Active Online Telemetry (Admin Only)"
+            >
+              <span style={{ position: 'relative', display: 'flex', width: 8, height: 8 }}>
+                <span
+                  style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    backgroundColor: '#10B981',
+                    opacity: 0.75,
+                    animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
+                  }}
+                />
+                <span
+                  style={{
+                    position: 'relative',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    backgroundColor: '#10B981',
+                  }}
+                />
+              </span>
+              <Users size={14} color="#38BDF8" />
+              <span>Team ({onlineUsersCount}/{totalUsersCount})</span>
+            </button>
+          )}
+
+          {/* Admin Exclusive: Duplicate Warning & Security Alerts Modal */}
+          {isAdmin && onOpenAlerts && (
+            <button
+              onClick={onOpenAlerts}
+              className="btn btn-outline"
+              style={{
+                height: 36,
+                minHeight: 36,
+                padding: '0 10px',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: unreadAlertsCount > 0 ? '#7F1D1D' : '#1E293B',
+                borderColor: unreadAlertsCount > 0 ? '#EF4444' : '#475569',
+                color: '#FFFFFF',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                animation: unreadAlertsCount > 0 ? 'pulse 1.8s infinite' : 'none',
+              }}
+              title="Duplicate Entries & System Security Alerts (Admin Only)"
+            >
+              <Bell size={14} color={unreadAlertsCount > 0 ? '#FCA5A5' : '#94A3B8'} />
+              <span>
+                Alerts {unreadAlertsCount > 0 && `(${unreadAlertsCount})`}
+              </span>
+            </button>
+          )}
+
+          {/* User Profile / Switcher */}
+          {isAdmin ? (
+            <div style={{ position: 'relative' }}>
+              <select
+                value={activeUser.id}
+                onChange={(e) => {
+                  const selected = usersList.find((u) => u.id === e.target.value);
+                  if (selected) onSelectUser(selected);
+                }}
+                aria-label="Active Operator Profile"
+                className="header-user-select"
+                style={{
+                  height: 36,
+                  padding: '0 8px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: '#FFFFFF',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  maxWidth: 140,
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {usersList.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.role === 'ADMIN_IBT' ? '👔 Admin: ' : '🔧 Tech: '} {u.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div
+              style={{
+                height: 36,
+                padding: '0 10px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid #CBD5E1',
+                backgroundColor: '#F8FAFC',
+                color: '#334155',
                 fontSize: '0.78rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                maxWidth: 135,
-                textOverflow: 'ellipsis',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
               }}
             >
-              {INITIAL_USERS.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.role === 'ADMIN_IBT' ? '👔 ' : '🔧 '} {u.name}
-                </option>
-              ))}
-            </select>
-          </div>
+              <span>🔧</span>
+              <span>{activeUser.name}</span>
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  padding: '1px 5px',
+                  borderRadius: 4,
+                  backgroundColor: '#E2E8F0',
+                  color: '#475569',
+                }}
+              >
+                {activeUser.role === 'FIELD_TECH' ? 'Field Tech' : 'Operator'}
+              </span>
+            </div>
+          )}
 
           {/* Connectivity / Offline Simulator Toggle */}
           <button

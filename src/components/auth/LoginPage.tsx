@@ -156,12 +156,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         </div>
 
         {/* 1-Click Quick Demo Credentials Pill */}
-        <div className="demo-badge-pill" style={{ marginBottom: 22 }}>
+        <div className="demo-badge-pill" style={{ marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <KeyRound size={16} style={{ color: '#00B4D8' }} />
             <div style={{ textAlign: 'left' }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#BAE6FD', letterSpacing: '0.03em' }}>
-                DEMO CREDENTIALS
+                SUPER ADMIN (MR. KANISHKA)
               </div>
               <div style={{ fontSize: '0.75rem', color: '#E2E8F0', fontFamily: 'var(--font-mono)' }}>
                 kanishka@slt.lk <span style={{ color: '#64748B' }}>/</span> slt123
@@ -190,8 +190,58 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             title="Click to auto-fill kanishka@slt.lk and slt123"
           >
             <Zap size={12} />
-            <span>Auto-fill</span>
+            <span>Admin</span>
           </button>
+        </div>
+
+        {/* Quick Operator / Tech Accounts Selector */}
+        <div
+          style={{
+            padding: '8px 12px',
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            borderRadius: 8,
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            marginBottom: 20,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+          }}
+        >
+          <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: 700 }}>
+            Or Login as Standard Technician / Operator (Password: tech123):
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {[
+              { name: 'Sunil', email: 'sunil@slt.lk' },
+              { name: 'Nuwan', email: 'nuwan@slt.lk' },
+              { name: 'Chaminda', email: 'chaminda@slt.lk' },
+              { name: 'Kasun', email: 'kasun@slt.lk' },
+              { name: 'Dilshan', email: 'dilshan@slt.lk' },
+            ].map(tech => (
+              <button
+                key={tech.email}
+                type="button"
+                onClick={() => {
+                  setEmail(tech.email);
+                  setPassword('tech123');
+                  setErrorMessage(null);
+                }}
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  border: '1px solid #334155',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  color: '#CBD5E1',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {tech.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Error Alert Banner */}

@@ -1,4 +1,4 @@
-import { InventoryItem, LedgerTransaction, SubCategoryCode, UserPersona, CustomerIssuance, StockTransfer } from '../types/inventory';
+import { InventoryItem, LedgerTransaction, SubCategoryCode, UserPersona, CustomerIssuance, StockTransfer, SystemAlert } from '../types/inventory';
 import {
   pushInventoryToFirestore,
   pushLedgerToFirestore,
@@ -16,6 +16,8 @@ const STORAGE_KEYS = {
   CUSTOMER_ISSUANCES: 'slt_matrix_customer_issuances_v1',
   TRANSFERS: 'slt_matrix_transfers_v2',
   AUTH_SESSION: 'slt_matrix_auth_session_v1',
+  USERS: 'slt_matrix_users_v2',
+  SYSTEM_ALERTS: 'slt_matrix_alerts_v1',
 };
 
 export const MOCK_AUTH_CREDENTIALS = {
@@ -31,16 +33,74 @@ export const INITIAL_USERS: UserPersona[] = [
   {
     id: 'USR-KANISHKA',
     name: 'Mr. Kanishka',
+    email: 'kanishka@slt.lk',
+    password: 'slt123',
     role: 'ADMIN_IBT',
     title: 'IBT Lead & Infrastructure Supervisor',
     branch: 'SLT-MOBITEL Colombo HQ / Regional Ops',
+    isOnline: true,
+    lastActive: 'Just now',
+    createdDate: '2025-01-01',
   },
   {
     id: 'USR-SUNIL',
-    name: 'Sunil P. (Field Tech)',
+    name: 'Sunil P.',
+    email: 'sunil@slt.lk',
+    password: 'tech123',
     role: 'FIELD_TECH',
     title: 'Senior Field Telecom Technician',
     branch: 'Metro OSP Field Unit 04',
+    isOnline: false,
+    lastActive: '2026-10-23 09:15',
+    createdDate: '2025-01-02',
+  },
+  {
+    id: 'USR-NUWAN',
+    name: 'Nuwan K.',
+    email: 'nuwan@slt.lk',
+    password: 'tech123',
+    role: 'FIELD_TECH',
+    title: 'Field Installation Technician',
+    branch: 'Colombo Central OSP',
+    isOnline: false,
+    lastActive: '2026-10-23 08:45',
+    createdDate: '2025-01-03',
+  },
+  {
+    id: 'USR-CHAMINDA',
+    name: 'Chaminda S.',
+    email: 'chaminda@slt.lk',
+    password: 'tech123',
+    role: 'FIELD_TECH',
+    title: 'Fiber & Copper Installer',
+    branch: 'Kandy Regional Unit',
+    isOnline: false,
+    lastActive: '2026-10-22 17:30',
+    createdDate: '2025-01-04',
+  },
+  {
+    id: 'USR-KASUN',
+    name: 'Kasun T.',
+    email: 'kasun@slt.lk',
+    password: 'tech123',
+    role: 'OPERATOR',
+    title: 'Depot Inventory Clerk',
+    branch: 'Central Warehouse Stores',
+    isOnline: false,
+    lastActive: '2026-10-22 16:00',
+    createdDate: '2025-01-05',
+  },
+  {
+    id: 'USR-DILSHAN',
+    name: 'Dilshan R.',
+    email: 'dilshan@slt.lk',
+    password: 'tech123',
+    role: 'OPERATOR',
+    title: 'Workshop Returns Assistant',
+    branch: 'Central Workshop Depot',
+    isOnline: false,
+    lastActive: '2026-10-21 14:20',
+    createdDate: '2025-01-06',
   },
 ];
 
@@ -3453,6 +3513,89 @@ class StorageService {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(user));
   }
 
+  getUsers(): UserPersona[] {
+    if (typeof window === 'undefined') return INITIAL_USERS;
+    const saved = localStorage.getItem(STORAGE_KEYS.USERS);
+    if (!saved) {
+      this.saveUsers(INITIAL_USERS);
+      return INITIAL_USERS;
+    }
+    try {
+      const users: UserPersona[] = JSON.parse(saved);
+      // Ensure Kanishka admin always exists
+      if (!users.some(u => u.role === 'ADMIN_IBT')) {
+        const merged = [INITIAL_USERS[0], ...users.filter(u => u.id !== 'USR-KANISHKA')];
+        this.saveUsers(merged);
+        return merged;
+      }
+      return users;
+    } catch {
+      return INITIAL_USERS;
+    }
+  }
+
+  saveUsers(users: UserPersona[]): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  }
+
+  addUser(user: Omit<UserPersona, 'id'>): UserPersona {
+    const users = this.getUsers();
+    const id = `USR-${Date.now().toString(36).toUpperCase()}`;
+    const newUser: UserPersona = {
+      ...user,
+      id,
+      isOnline: false,
+      lastActive: 'Never',
+      createdDate: new Date().toISOString().split('T')[0],
+    };
+    users.push(newUser);
+    this.saveUsers(users);
+    return newUser;
+  }
+
+  updateUser(updated: UserPersona): void {
+    const users = this.getUsers().map(u => u.id === updated.id ? updated : u);
+    this.saveUsers(users);
+    const active = this.getActiveUser();
+    if (active.id === updated.id) {
+      this.setActiveUser(updated);
+    }
+  }
+
+  deleteUser(id: string): boolean {
+    const users = this.getUsers();
+    const target = users.find(u => u.id === id);
+    if (target?.role === 'ADMIN_IBT' || target?.id === 'USR-KANISHKA') {
+      return false; // Cannot delete Super Admin Kanishka
+    }
+    const filtered = users.filter(u => u.id !== id);
+    this.saveUsers(filtered);
+    return true;
+  }
+
+  setUserOnlineStatus(userId: string, isOnline: boolean): void {
+    const users = this.getUsers().map(u => {
+      if (u.id === userId) {
+        return {
+          ...u,
+          isOnline,
+          lastActive: isOnline ? 'Just now' : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+      }
+      return u;
+    });
+    this.saveUsers(users);
+    const active = this.getActiveUser();
+    if (active.id === userId) {
+      this.setActiveUser({
+        ...active,
+        isOnline,
+        lastActive: isOnline ? 'Just now' : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      });
+    }
+  }
+
   getInventory(): InventoryItem[] {
     if (typeof window === 'undefined') return INITIAL_INVENTORY;
     const saved = localStorage.getItem(STORAGE_KEYS.INVENTORY);
@@ -4186,26 +4329,118 @@ class StorageService {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    if (cleanEmail === MOCK_AUTH_CREDENTIALS.email.toLowerCase() && cleanPass === MOCK_AUTH_CREDENTIALS.password) {
+    const users = this.getUsers();
+    const found = users.find(
+      u => u.email.toLowerCase() === cleanEmail && (u.password || 'tech123') === cleanPass
+    );
+
+    if (found) {
+      this.setUserOnlineStatus(found.id, true);
+      const updatedUser = { ...found, isOnline: true, lastActive: 'Just now' };
+
       const session = {
         email: cleanEmail,
-        name: MOCK_AUTH_CREDENTIALS.name,
+        name: found.name,
+        role: found.role,
+        userId: found.id,
         loggedInAt: new Date().toISOString(),
       };
       localStorage.setItem(STORAGE_KEYS.AUTH_SESSION, JSON.stringify(session));
-      const user = INITIAL_USERS.find(u => u.id === 'USR-KANISHKA') || INITIAL_USERS[0];
-      this.setActiveUser(user);
-      return { success: true, user };
+      this.setActiveUser(updatedUser);
+      return { success: true, user: updatedUser };
     }
 
     return {
       success: false,
-      error: 'Invalid SLT credentials. Please use kanishka@slt.lk and password slt123.',
+      error: 'Invalid SLT credentials. Check your email & password (or contact Admin Mr. Kanishka).',
     };
   }
 
   logout(): void {
+    const active = this.getActiveUser();
+    if (active && active.id) {
+      this.setUserOnlineStatus(active.id, false);
+    }
     localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+  }
+
+  /**
+   * System Duplicate & Security Alerts
+   */
+  getSystemAlerts(): SystemAlert[] {
+    if (typeof window === 'undefined') return [];
+    const saved = localStorage.getItem(STORAGE_KEYS.SYSTEM_ALERTS);
+    if (!saved) return [];
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return [];
+    }
+  }
+
+  saveSystemAlerts(alerts: SystemAlert[]): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(STORAGE_KEYS.SYSTEM_ALERTS, JSON.stringify(alerts));
+  }
+
+  addSystemAlert(alert: Omit<SystemAlert, 'id' | 'timestamp' | 'resolved'>): SystemAlert {
+    const alerts = this.getSystemAlerts();
+    const newAlert: SystemAlert = {
+      ...alert,
+      id: `ALT-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      timestamp: new Date().toISOString(),
+      resolved: false,
+    };
+    alerts.unshift(newAlert);
+    this.saveSystemAlerts(alerts);
+    return newAlert;
+  }
+
+  resolveSystemAlert(alertId: string, resolvedBy: string): void {
+    const alerts = this.getSystemAlerts().map(a => {
+      if (a.id === alertId) {
+        return {
+          ...a,
+          resolved: true,
+          resolvedAt: new Date().toISOString(),
+          resolvedBy,
+        };
+      }
+      return a;
+    });
+    this.saveSystemAlerts(alerts);
+  }
+
+  getUnreadAlertsCount(): number {
+    return this.getSystemAlerts().filter(a => !a.resolved).length;
+  }
+
+  /**
+   * 30-Day Audit Ledger Retention & Auto-Prune
+   */
+  pruneLedgerOlderThan(days: number = 30): { pruned: LedgerTransaction[]; remaining: LedgerTransaction[] } {
+    const ledger = this.getLedger();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffTime = cutoffDate.getTime();
+
+    const pruned: LedgerTransaction[] = [];
+    const remaining: LedgerTransaction[] = [];
+
+    for (const item of ledger) {
+      const itemTime = new Date(item.entryDate || item.timestamp).getTime();
+      if (!isNaN(itemTime) && itemTime < cutoffTime) {
+        pruned.push(item);
+      } else {
+        remaining.push(item);
+      }
+    }
+
+    if (pruned.length > 0) {
+      this.saveLedger(remaining);
+    }
+
+    return { pruned, remaining };
   }
 }
 
