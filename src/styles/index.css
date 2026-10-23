@@ -325,8 +325,12 @@ h1, h2, h3, h4, h5 {
   align-items: center;
   gap: 8px;
   text-decoration: none;
-  min-width: 0;
-  flex-shrink: 1;
+  flex-shrink: 0;
+}
+
+.brand-text-block {
+  display: flex;
+  flex-direction: column;
 }
 
 .slt-pill-logo {
@@ -369,12 +373,35 @@ h1, h2, h3, h4, h5 {
     font-size: 0.95rem !important;
   }
   .header-user-select {
-    max-width: 110px !important;
+    max-width: 105px !important;
     font-size: 0.74rem !important;
+    height: 32px !important;
+  }
+  .header-status-pill {
+    height: 30px !important;
+    padding: 0 6px !important;
+    font-size: 0.68rem !important;
+  }
+  .header-sun-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+  }
+  .header-logout-btn {
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 6px !important;
+    font-size: 0.72rem !important;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 540px) {
+  .brand-version-badge {
+    display: none !important;
+  }
+}
+
+@media (max-width: 420px) {
   .slt-header-inner {
     padding: 6px 8px;
     gap: 6px;
@@ -385,15 +412,14 @@ h1, h2, h3, h4, h5 {
   .slt-pill-blue, .slt-pill-green {
     padding: 3px 5px;
   }
-  .header-scan-btn span,
+  .brand-title-text {
+    display: none !important;
+  }
   .header-logout-btn span {
     display: none !important;
   }
-  .header-scan-btn {
-    padding: 6px 8px !important;
-  }
   .header-user-select {
-    max-width: 95px !important;
+    max-width: 88px !important;
   }
 }
 

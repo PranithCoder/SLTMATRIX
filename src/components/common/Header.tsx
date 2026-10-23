@@ -12,7 +12,7 @@ interface HeaderProps {
   onManualSync: () => void;
   isHighContrast: boolean;
   onToggleHighContrast: () => void;
-  onOpenScanner: () => void;
+  onOpenScanner?: () => void;
   onLogout?: () => void;
 }
 
@@ -25,7 +25,6 @@ export const Header: React.FC<HeaderProps> = ({
   onManualSync,
   isHighContrast,
   onToggleHighContrast,
-  onOpenScanner,
   onLogout,
 }) => {
   return (
@@ -37,12 +36,12 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="slt-pill-blue">SLT</span>
             <span className="slt-pill-green">MOBITEL</span>
           </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <div className="brand-text-block">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <h1 className="brand-title-text" style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--slt-deep-blue)', margin: 0, whiteSpace: 'nowrap' }}>
                 SLT MatriX
               </h1>
-              <span style={{
+              <span className="brand-version-badge" style={{
                 background: 'var(--mobitel-lime-light)',
                 color: 'var(--mobitel-lime-dark)',
                 fontSize: '0.65rem',
@@ -61,24 +60,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Action Controls */}
+        {/* Action Controls (Scanner removed from top nav, accessible via bottom nav) */}
         <div className="slt-header-actions">
-          {/* Quick Barcode Scanner Button */}
-          <button
-            onClick={onOpenScanner}
-            className="btn btn-primary header-scan-btn"
-            style={{
-              padding: '6px 12px',
-              minHeight: 36,
-              fontSize: '0.82rem',
-              gap: 5,
-            }}
-            title="Open Camera Barcode & QR Scanner"
-          >
-            <QrCode size={17} />
-            <span>Scan</span>
-          </button>
-
           {/* User Persona Switcher */}
           <div style={{ position: 'relative' }}>
             <select
