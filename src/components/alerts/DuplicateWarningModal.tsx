@@ -24,135 +24,249 @@ export const DuplicateWarningModal: React.FC<DuplicateWarningModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-lg bg-slate-900 border-2 border-red-500/70 rounded-2xl shadow-2xl overflow-hidden animate-scaleIn">
-        
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1200,
+        padding: 16,
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 'var(--radius-lg)',
+          width: '100%',
+          maxWidth: 560,
+          boxShadow: 'var(--shadow-floating)',
+          border: '2px solid #EF4444',
+          overflow: 'hidden',
+        }}
+      >
         {/* Urgent Warning Header */}
-        <div className="px-5 py-4 bg-gradient-to-r from-red-950 via-slate-900 to-red-950 border-b border-red-500/40 flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-red-600/20 text-red-400 rounded-xl border border-red-500/40 animate-pulse">
-              <AlertTriangle className="w-6 h-6" />
+        <div
+          style={{
+            padding: '16px 20px',
+            background: 'linear-gradient(135deg, #7F1D1D 0%, #991B1B 100%)',
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <AlertTriangle size={22} color="#FFFFFF" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-white tracking-wide">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#FFFFFF' }}>
                   Duplicate Record Detected!
                 </h3>
-                <span className="px-2 py-0.5 text-[10px] font-black uppercase bg-red-500 text-white rounded">
+                <span
+                  style={{
+                    backgroundColor: '#FEF2F2',
+                    color: '#991B1B',
+                    fontSize: '0.65rem',
+                    fontWeight: 900,
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                  }}
+                >
                   CRITICAL
                 </span>
               </div>
-              <p className="text-xs text-red-300">
+              <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#FECACA' }}>
                 {duplicateType === 'SERIAL'
-                  ? `Serial Number [${duplicateValue}] already issued!`
+                  ? `Serial Number [${duplicateValue}] is already registered in the system!`
                   : duplicateType === 'ACCOUNT'
-                  ? `Customer Account [${duplicateValue}] already exists!`
+                  ? `Customer Account [${duplicateValue}] already exists in active records!`
                   : `Duplicate Serial & Account detected!`}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: 'none',
+              color: '#FFFFFF',
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
           >
-            <X className="w-5 h-5" />
+            <X size={16} />
           </button>
         </div>
 
         {/* Informing Kanishka Notice Banner */}
-        <div className="px-5 py-2.5 bg-red-950/60 border-b border-red-500/30 flex items-center gap-2 text-xs text-red-200">
-          <ShieldAlert className="w-4 h-4 text-red-400 flex-shrink-0" />
+        <div
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#FEF2F2',
+            borderBottom: '1px solid #FCA5A5',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: '0.78rem',
+            color: '#991B1B',
+          }}
+        >
+          <ShieldAlert size={16} style={{ flexShrink: 0 }} />
           <span>
-            <strong>System Alert Logged:</strong> This duplicate attempt has been flagged and transmitted to Admin <strong>Mr. Kanishka</strong>.
+            <strong>System Alert Logged:</strong> This duplicate attempt has been recorded and transmitted to Super Admin <strong>Mr. Kanishka</strong>.
           </span>
         </div>
 
         {/* Existing Customer Details Card */}
-        <div className="p-5 space-y-3.5 text-xs">
-          <div className="text-slate-300 font-semibold uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-            <span>Existing Issuance Record Details:</span>
+        <div style={{ padding: '18px 20px' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', marginBottom: 8 }}>
+            Existing Issuance Record Details:
           </div>
 
-          <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl space-y-2.5">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
-              <span className="text-slate-400">Customer Name:</span>
-              <span className="font-bold text-white text-sm">{existingRecord.customerName}</span>
+          <div
+            style={{
+              backgroundColor: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              borderRadius: 'var(--radius-md)',
+              padding: '14px 16px',
+              fontSize: '0.8rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 6, borderBottom: '1px solid #E2E8F0' }}>
+              <span style={{ color: '#64748B' }}>Customer Name:</span>
+              <span style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.9rem' }}>{existingRecord.customerName}</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-slate-300">
-              <div className="flex items-center gap-1.5">
-                <Hash className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-slate-400">Account:</span>
-                <span className="font-mono font-bold text-white">{existingRecord.accountNo}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Hash size={14} color="#0056B3" />
+                <span style={{ color: '#64748B' }}>Account:</span>
+                <strong style={{ fontFamily: 'var(--font-mono)' }}>{existingRecord.accountNo}</strong>
               </div>
               {existingRecord.serialNumber && (
-                <div className="flex items-center gap-1.5">
-                  <Hash className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-slate-400">Serial:</span>
-                  <span className="font-mono font-bold text-amber-300">{existingRecord.serialNumber}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Hash size={14} color="#D97706" />
+                  <span style={{ color: '#64748B' }}>Serial:</span>
+                  <strong style={{ fontFamily: 'var(--font-mono)', color: '#B45309' }}>{existingRecord.serialNumber}</strong>
                 </div>
               )}
             </div>
 
-            <div className="text-slate-300">
-              <span className="text-slate-400">Device / Item: </span>
-              <strong className="text-white">{existingRecord.materialCode}</strong> — {existingRecord.materialDescription}
+            <div style={{ color: '#334155' }}>
+              <span style={{ color: '#64748B' }}>Device / Item: </span>
+              <strong>{existingRecord.materialCode}</strong> — {existingRecord.materialDescription}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80 text-slate-400 text-[11px]">
-              <div className="flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                <span>Issued: <strong className="text-slate-300">{existingRecord.issueDate}</strong></span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, paddingTop: 6, borderTop: '1px solid #E2E8F0', fontSize: '0.74rem', color: '#64748B' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Calendar size={13} />
+                <span>Issued: <strong style={{ color: '#0F172A' }}>{existingRecord.issueDate}</strong></span>
               </div>
-              <div className="flex items-center gap-1">
-                <User className="w-3.5 h-3.5 text-slate-500" />
-                <span>By: <strong className="text-slate-300">{existingRecord.issuedBy}</strong></span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <User size={13} />
+                <span>By: <strong style={{ color: '#0F172A' }}>{existingRecord.issuedBy}</strong></span>
               </div>
             </div>
 
             {existingRecord.customerContact && (
-              <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
-                <Phone className="w-3.5 h-3.5 text-emerald-400" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', color: '#64748B' }}>
+                <Phone size={13} color="#059669" />
                 <span>Contact: {existingRecord.customerContact}</span>
               </div>
             )}
 
             {existingRecord.customerAddress && (
-              <div className="flex items-center gap-1.5 text-slate-400 text-[11px]">
-                <MapPin className="w-3.5 h-3.5 text-red-400" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', color: '#64748B' }}>
+                <MapPin size={13} color="#DC2626" />
                 <span>Address: {existingRecord.customerAddress}</span>
               </div>
             )}
 
-            <div className="pt-2 flex items-center justify-between text-[11px]">
-              <span className="text-slate-500">Record Status:</span>
-              <span className={`px-2 py-0.5 rounded font-semibold ${
-                existingRecord.status === 'ACTIVE'
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-              }`}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid #E2E8F0' }}>
+              <span style={{ color: '#64748B' }}>Record Status:</span>
+              <span
+                style={{
+                  backgroundColor: existingRecord.status === 'ACTIVE' ? '#DCFCE7' : '#FEF3C7',
+                  color: existingRecord.status === 'ACTIVE' ? '#15803D' : '#92400E',
+                  border: `1px solid ${existingRecord.status === 'ACTIVE' ? '#86EFAC' : '#FCD34D'}`,
+                  padding: '1px 8px',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: '0.72rem',
+                }}
+              >
                 {existingRecord.status}
               </span>
             </div>
           </div>
 
-          <p className="text-slate-400 text-[11px] leading-relaxed">
-            Please verify if this customer is requesting a secondary ONT or if the device has already been collected / swapped in SLT records.
+          <p style={{ margin: '12px 0 0 0', fontSize: '0.74rem', color: '#64748B', lineHeight: 1.4 }}>
+            Please verify if this customer is requesting an authorized replacement or if the previous hardware was already recovered in TC-OPNC-C/R records.
           </p>
         </div>
 
         {/* Footer Actions */}
-        <div className="px-5 py-3.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3">
+        <div
+          style={{
+            padding: '12px 20px',
+            backgroundColor: '#F8FAFC',
+            borderTop: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
           <button
             onClick={onClose}
-            className="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition-colors"
+            className="btn btn-outline"
+            style={{ flex: 1, minHeight: 38, fontWeight: 700 }}
           >
             Cancel & Correct Entry
           </button>
           {onProceed && (
             <button
               onClick={onProceed}
-              className="py-2 px-3 bg-red-600/80 hover:bg-red-600 text-white rounded-lg text-xs font-semibold transition-colors border border-red-500/50"
+              style={{
+                backgroundColor: '#DC2626',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                padding: '0 16px',
+                minHeight: 38,
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
             >
               Proceed Anyway
             </button>

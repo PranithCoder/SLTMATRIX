@@ -155,45 +155,125 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   const onlineCount = users.filter(u => u.isOnline).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden">
-        
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1150,
+        padding: 16,
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 'var(--radius-lg)',
+          width: '100%',
+          maxWidth: 960,
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: 'var(--shadow-floating)',
+          border: '1px solid var(--border-color)',
+          overflow: 'hidden',
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-slate-900 via-blue-950/60 to-slate-900 border-b border-slate-700/80">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-600/20 text-blue-400 rounded-xl border border-blue-500/30">
-              <Users className="w-6 h-6" />
+        <div
+          style={{
+            padding: '16px 24px',
+            background: 'linear-gradient(135deg, #002D5E 0%, #0056B3 100%)',
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Users size={22} color="#FFFFFF" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-white tracking-wide">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#FFFFFF' }}>
                   SLT User Access & Operator Matrix
                 </h2>
-                <span className="px-2 py-0.5 text-xs font-semibold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" />
+                <span
+                  style={{
+                    backgroundColor: '#FEF3C7',
+                    color: '#92400E',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: 12,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <ShieldCheck size={12} />
                   Admin Only
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
-                Managed by <strong className="text-white">{currentUser.name}</strong> • Real-time Active Online Tracker
+              <p style={{ margin: '2px 0 0 0', fontSize: '0.78rem', color: '#BAE6FD' }}>
+                Managed by <strong>{currentUser.name}</strong> • Real-time Active Online Telemetry
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               onClick={handleStartCreate}
-              className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition-all shadow-md active:scale-95"
+              className="btn btn-primary"
+              style={{
+                backgroundColor: 'var(--mobitel-lime)',
+                color: '#002D5E',
+                borderColor: 'var(--mobitel-lime)',
+                minHeight: 36,
+                padding: '0 14px',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                gap: 6,
+              }}
             >
-              <UserPlus className="w-4 h-4" />
+              <UserPlus size={15} />
               <span>+ Add User</span>
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: 'none',
+                color: '#FFFFFF',
+                width: 34,
+                height: 34,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
               title="Close modal"
             >
-              <X className="w-5 h-5" />
+              <X size={18} />
             </button>
           </div>
         </div>
@@ -201,75 +281,85 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
         {/* Status Message Notification */}
         {statusMessage && (
           <div
-            className={`px-6 py-2.5 text-sm flex items-center gap-2 border-b ${
-              statusMessage.type === 'error'
-                ? 'bg-red-500/10 text-red-300 border-red-500/20'
-                : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
-            }`}
+            style={{
+              padding: '10px 24px',
+              backgroundColor: statusMessage.type === 'error' ? '#FEF2F2' : '#F0FDF4',
+              color: statusMessage.type === 'error' ? '#B91C1C' : '#15803D',
+              borderBottom: `1px solid ${statusMessage.type === 'error' ? '#FCA5A5' : '#86EFAC'}`,
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
           >
-            {statusMessage.type === 'error' ? (
-              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
-            ) : (
-              <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            )}
+            {statusMessage.type === 'error' ? <AlertTriangle size={16} /> : <CheckCircle size={16} />}
             <span>{statusMessage.text}</span>
           </div>
         )}
 
         {/* Live Status Tracker Bar (Admin Exclusive) */}
-        <div className="px-6 py-3 bg-slate-800/70 border-b border-slate-700/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-              </span>
-              <span className="text-slate-300 font-medium">
-                Active Online: <strong className="text-emerald-400">{onlineCount}</strong> / {users.length}
+        <div
+          style={{
+            padding: '10px 24px',
+            backgroundColor: '#F8FAFC',
+            borderBottom: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            fontSize: '0.8rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block', boxShadow: '0 0 8px #10B981' }} />
+              <span style={{ fontWeight: 700, color: '#0F172A' }}>
+                Active Online: <strong style={{ color: '#059669' }}>{onlineCount}</strong> of {users.length} accounts
               </span>
             </div>
-            <span className="text-slate-500 hidden sm:inline">•</span>
-            <span className="text-slate-400 hidden sm:inline flex items-center gap-1">
-              <Radio className="w-3.5 h-3.5 text-blue-400" />
-              Live Online telemetry visible only to Super Admin ({currentUser.name})
+            <span style={{ color: '#94A3B8' }}>•</span>
+            <span style={{ color: '#64748B', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Radio size={14} color="#0284C7" />
+              Online status telemetry visible exclusively to Super Admin Mr. Kanishka
             </span>
           </div>
-          <button
-            onClick={handleStartCreate}
-            className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>Add User</span>
-          </button>
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
           
-          {/* Add / Edit Inline Form */}
+          {/* Add / Edit Form Card */}
           {(isCreating || editingUser) && (
             <form
               onSubmit={isCreating ? handleSaveCreate : handleSaveEdit}
-              className="p-4 sm:p-5 bg-slate-800/90 border border-blue-500/40 rounded-xl space-y-4 animate-slideDown shadow-xl"
+              className="card"
+              style={{
+                marginBottom: 20,
+                backgroundColor: '#F1F5F9',
+                border: '1px solid #CBD5E1',
+                padding: '18px 20px',
+              }}
             >
-              <div className="flex items-center justify-between pb-3 border-b border-slate-700">
-                <div className="flex items-center gap-2 text-blue-400 font-semibold text-sm">
-                  {isCreating ? <UserPlus className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
-                  <span>{isCreating ? 'Create New Operator Account' : `Edit Account: ${editingUser?.name}`}</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: 'var(--slt-deep-blue)', fontSize: '0.9rem' }}>
+                  {isCreating ? <UserPlus size={18} /> : <Edit2 size={18} />}
+                  <span>{isCreating ? 'Create New Operator / Tech Account' : `Edit Account: ${editingUser?.name}`}</span>
                 </div>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-700/60"
+                  className="btn btn-outline"
+                  style={{ minHeight: 28, padding: '0 10px', fontSize: '0.72rem' }}
                 >
                   Cancel
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-slate-400" />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                <div className="input-group">
+                  <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <User size={13} />
                     Full Name *
                   </label>
                   <input
@@ -278,14 +368,15 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     value={name}
                     onChange={e => setName(e.target.value)}
                     placeholder="e.g. Ruwan Silva"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-xs"
+                    className="input-field"
+                    style={{ height: 38 }}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-slate-400" />
-                    SLT Email / Login Username *
+                <div className="input-group">
+                  <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Mail size={13} />
+                    Enterprise Email *
                   </label>
                   <input
                     type="email"
@@ -293,13 +384,14 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="e.g. ruwan@slt.lk"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-xs"
+                    className="input-field"
+                    style={{ height: 38 }}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1 flex items-center gap-1.5">
-                    <KeyRound className="w-3.5 h-3.5 text-slate-400" />
+                <div className="input-group">
+                  <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <KeyRound size={13} />
                     Password *
                   </label>
                   <input
@@ -308,40 +400,43 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="tech123"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-xs font-mono"
+                    className="input-field mono"
+                    style={{ height: 38 }}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1 flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                <div className="input-group">
+                  <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Lock size={13} />
                     System Role & Access Level *
                   </label>
                   <select
                     value={role}
                     onChange={e => setRole(e.target.value as any)}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-xs"
+                    className="input-field"
+                    style={{ height: 38, fontWeight: 600 }}
                   >
-                    <option value="FIELD_TECH">FIELD_TECH (Basic: Installs, Issues, Returns)</option>
-                    <option value="OPERATOR">OPERATOR (Basic: Depot & Warehouse Ops)</option>
-                    <option value="ADMIN_IBT">ADMIN_IBT (Super Admin: Full Access)</option>
+                    <option value="FIELD_TECH">FIELD_TECH (Field Installs, Issuance, Returns)</option>
+                    <option value="OPERATOR">OPERATOR (Depot / Warehouse Operations)</option>
+                    <option value="ADMIN_IBT">ADMIN_IBT (Super Admin: Full Master Access)</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1">Designation / Title</label>
+                <div className="input-group">
+                  <label className="input-label">Designation / Title</label>
                   <input
                     type="text"
                     value={title}
                     onChange={e => setTitle(e.target.value)}
-                    placeholder="e.g. Field Technician Grade II"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-xs"
+                    placeholder="e.g. Field Telecom Technician"
+                    className="input-field"
+                    style={{ height: 38 }}
                   />
                 </div>
 
-                <div>
-                  <label className="block text-slate-300 font-medium mb-1 flex items-center gap-1.5">
-                    <Building className="w-3.5 h-3.5 text-slate-400" />
+                <div className="input-group">
+                  <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Building size={13} />
                     Branch / Operational Unit
                   </label>
                   <input
@@ -349,22 +444,25 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     value={branch}
                     onChange={e => setBranch(e.target.value)}
                     placeholder="e.g. Metro OSP Field Unit 04"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 text-xs"
+                    className="input-field"
+                    style={{ height: 38 }}
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs font-medium transition-colors"
+                  className="btn btn-outline"
+                  style={{ minHeight: 36 }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition-all shadow-md"
+                  className="btn btn-primary"
+                  style={{ minHeight: 36, padding: '0 20px' }}
                 >
                   {isCreating ? 'Create Account' : 'Save Changes'}
                 </button>
@@ -373,147 +471,232 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
           )}
 
           {/* User List Table */}
-          <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60 shadow-inner">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-800/80 text-slate-400 font-semibold uppercase tracking-wider border-b border-slate-700">
-                    <th className="py-3 px-4">Operator / Technician</th>
-                    <th className="py-3 px-4">Role & Level</th>
-                    <th className="py-3 px-4">Branch / Unit</th>
-                    <th className="py-3 px-4">Online Status</th>
-                    <th className="py-3 px-4">Login Password</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/80">
-                  {users.map(u => {
-                    const isSuperAdmin = u.role === 'ADMIN_IBT' || u.id === 'USR-KANISHKA';
-                    return (
-                      <tr
-                        key={u.id}
-                        className={`hover:bg-slate-800/40 transition-colors ${
-                          u.isOnline ? 'bg-emerald-950/10' : ''
-                        }`}
-                      >
-                        <td className="py-3 px-4">
-                          <div className="font-semibold text-white flex items-center gap-1.5">
-                            {u.name}
-                            {isSuperAdmin && (
-                              <span className="px-1.5 py-0.2 text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded font-normal">
-                                Super Admin
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-slate-400 text-[11px] font-mono">{u.email}</div>
-                          {u.title && <div className="text-slate-500 text-[10px]">{u.title}</div>}
-                        </td>
+          <div className="table-container" style={{ borderRadius: 'var(--radius-md)' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Operator / Technician</th>
+                  <th>Role & Level</th>
+                  <th>Branch / Unit</th>
+                  <th>Online Status</th>
+                  <th>Login Password</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => {
+                  const isSuperAdmin = u.role === 'ADMIN_IBT' || u.id === 'USR-KANISHKA';
+                  return (
+                    <tr key={u.id} style={{ backgroundColor: u.isOnline ? '#F0FDF4' : 'transparent' }}>
+                      <td>
+                        <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>{u.name}</span>
+                          {isSuperAdmin && (
+                            <span
+                              style={{
+                                backgroundColor: '#FEF3C7',
+                                color: '#92400E',
+                                fontSize: '0.65rem',
+                                fontWeight: 800,
+                                padding: '1px 6px',
+                                borderRadius: 10,
+                                border: '1px solid #FCD34D',
+                              }}
+                            >
+                              Super Admin
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#0284C7', fontFamily: 'var(--font-mono)' }}>
+                          {u.email}
+                        </div>
+                        {u.title && (
+                          <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{u.title}</div>
+                        )}
+                      </td>
 
-                        <td className="py-3 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[11px] font-medium border ${
+                      <td>
+                        <span
+                          className="badge"
+                          style={{
+                            backgroundColor:
                               u.role === 'ADMIN_IBT'
-                                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                                ? '#FEF3C7'
                                 : u.role === 'FIELD_TECH'
-                                ? 'bg-blue-500/10 text-blue-300 border-blue-500/30'
-                                : 'bg-purple-500/10 text-purple-300 border-purple-500/30'
-                            }`}
+                                ? '#E0F2FE'
+                                : '#F3E8FF',
+                            color:
+                              u.role === 'ADMIN_IBT'
+                                ? '#92400E'
+                                : u.role === 'FIELD_TECH'
+                                ? '#0284C7'
+                                : '#7E22CE',
+                            border: `1px solid ${
+                              u.role === 'ADMIN_IBT'
+                                ? '#FCD34D'
+                                : u.role === 'FIELD_TECH'
+                                ? '#7DD3FC'
+                                : '#D8B4FE'
+                            }`,
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {u.role === 'ADMIN_IBT' ? 'Full Control' : 'Basic Operator'}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div style={{ fontSize: '0.8rem', color: '#334155' }}>
+                          {u.branch || '—'}
+                        </div>
+                      </td>
+
+                      {/* Live Online Telemetry (Exclusive to Kanishka) */}
+                      <td>
+                        {u.isOnline ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '3px 10px',
+                              borderRadius: 14,
+                              backgroundColor: '#DCFCE7',
+                              color: '#15803D',
+                              border: '1px solid #86EFAC',
+                              fontWeight: 800,
+                              fontSize: '0.72rem',
+                            }}
                           >
-                            {u.role === 'ADMIN_IBT' ? 'Full Control' : 'Basic Operator'}
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10B981', boxShadow: '0 0 6px #10B981' }} />
+                            ONLINE
                           </span>
-                        </td>
+                        ) : (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontSize: '0.74rem',
+                              color: '#64748B',
+                            }}
+                          >
+                            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#94A3B8' }} />
+                            Offline ({u.lastActive || 'Inactive'})
+                          </span>
+                        )}
+                      </td>
 
-                        <td className="py-3 px-4 text-slate-300">
-                          <div>{u.branch || '—'}</div>
-                        </td>
+                      <td>
+                        <code
+                          style={{
+                            backgroundColor: '#F1F5F9',
+                            padding: '3px 8px',
+                            borderRadius: 4,
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: '0.75rem',
+                            color: '#334155',
+                            border: '1px solid #E2E8F0',
+                          }}
+                        >
+                          {u.password || 'tech123'}
+                        </code>
+                      </td>
 
-                        {/* Live Online Telemetry (Exclusive to Kanishka) */}
-                        <td className="py-3 px-4">
-                          {u.isOnline ? (
-                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold text-[11px]">
-                              <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                              </span>
-                              ONLINE
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                          <button
+                            onClick={() => handleStartEdit(u)}
+                            className="btn btn-outline"
+                            style={{ minHeight: 32, padding: '0 8px', color: '#0284C7' }}
+                            title="Edit user details"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+
+                          {isSuperAdmin ? (
+                            <button
+                              disabled
+                              className="btn btn-outline"
+                              style={{ minHeight: 32, padding: '0 8px', opacity: 0.4, cursor: 'not-allowed' }}
+                              title="Primary Admin account cannot be removed"
+                            >
+                              <Lock size={14} />
+                            </button>
+                          ) : deleteConfirmId === u.id ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <button
+                                onClick={() => handleDelete(u.id)}
+                                style={{
+                                  backgroundColor: '#DC2626',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  borderRadius: 4,
+                                  padding: '4px 8px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirmId(null)}
+                                style={{
+                                  backgroundColor: '#E2E8F0',
+                                  color: '#475569',
+                                  border: 'none',
+                                  borderRadius: 4,
+                                  padding: '4px 6px',
+                                  fontSize: '0.7rem',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Cancel
+                              </button>
                             </div>
                           ) : (
-                            <div className="text-slate-500 flex items-center gap-1.5 text-[11px]">
-                              <span className="h-2 w-2 rounded-full bg-slate-600"></span>
-                              <span>Offline ({u.lastActive || 'Inactive'})</span>
-                            </div>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-4">
-                          <code className="text-slate-400 font-mono text-[11px] bg-slate-800 px-1.5 py-0.5 rounded">
-                            {u.password || 'tech123'}
-                          </code>
-                        </td>
-
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => handleStartEdit(u)}
-                              className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded transition-colors"
-                              title="Edit user details"
+                              onClick={() => setDeleteConfirmId(u.id)}
+                              className="btn btn-outline"
+                              style={{ minHeight: 32, padding: '0 8px', color: '#DC2626' }}
+                              title="Delete user"
                             >
-                              <Edit2 className="w-3.5 h-3.5" />
+                              <Trash2 size={14} />
                             </button>
-
-                            {/* Delete button (Super admin cannot be deleted) */}
-                            {isSuperAdmin ? (
-                              <button
-                                disabled
-                                className="p-1.5 text-slate-600 cursor-not-allowed"
-                                title="Primary Admin account cannot be removed"
-                              >
-                                <Lock className="w-3.5 h-3.5" />
-                              </button>
-                            ) : deleteConfirmId === u.id ? (
-                              <div className="flex items-center gap-1 bg-red-950/60 p-1 rounded border border-red-500/40">
-                                <button
-                                  onClick={() => handleDelete(u.id)}
-                                  className="px-2 py-0.5 bg-red-600 text-white rounded text-[10px] font-bold"
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  onClick={() => setDeleteConfirmId(null)}
-                                  className="px-1.5 py-0.5 text-slate-400 hover:text-white text-[10px]"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setDeleteConfirmId(u.id)}
-                                className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded transition-colors"
-                                title="Delete user"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 bg-slate-900 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Kanishka holds master rights. Standard users restricted from deleting/altering catalog.</span>
+        <div
+          style={{
+            padding: '14px 24px',
+            backgroundColor: '#F8FAFC',
+            borderTop: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.78rem',
+            color: '#64748B',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <ShieldCheck size={16} color="#059669" />
+            <span>Mr. Kanishka holds master rights. Standard users restricted from deleting/altering catalog.</span>
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors font-medium"
+            className="btn btn-outline"
+            style={{ minHeight: 34, padding: '0 16px', fontWeight: 600 }}
           >
             Close
           </button>
