@@ -362,61 +362,106 @@ h1, h2, h3, h4, h5 {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.slt-header-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.header-user-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
+.header-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #DC2626 !important;
+  background-color: #FEF2F2 !important;
+  border: 1px solid #FCA5A5 !important;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0 !important;
+  white-space: nowrap;
+}
+
+.header-logout-btn:hover {
+  background-color: #FEE2E2 !important;
+  border-color: #EF4444 !important;
+  color: #B91C1C !important;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.2);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 860px) {
+  .header-btn-label {
+    display: none !important;
+  }
   .brand-subtitle-text {
     display: none !important;
   }
-  .brand-title-text {
-    font-size: 0.95rem !important;
-  }
+}
+
+@media (max-width: 768px) {
   .header-user-select {
-    max-width: 105px !important;
+    max-width: 110px !important;
     font-size: 0.74rem !important;
-    height: 32px !important;
+    height: 34px !important;
   }
   .header-status-pill {
-    height: 30px !important;
+    height: 32px !important;
     padding: 0 6px !important;
     font-size: 0.68rem !important;
   }
   .header-sun-btn {
-    width: 32px !important;
-    height: 32px !important;
-    min-height: 32px !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
   }
   .header-logout-btn {
-    height: 32px !important;
-    min-height: 32px !important;
-    padding: 0 6px !important;
-    font-size: 0.72rem !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 8px !important;
+    font-size: 0.74rem !important;
   }
 }
 
-@media (max-width: 540px) {
+@media (max-width: 600px) {
+  .brand-title-text,
   .brand-version-badge {
     display: none !important;
   }
+  .slt-pill-logo {
+    font-size: 0.9rem;
+  }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 440px) {
   .slt-header-inner {
     padding: 6px 8px;
     gap: 6px;
   }
-  .slt-pill-logo {
-    font-size: 0.85rem;
-  }
-  .slt-pill-blue, .slt-pill-green {
-    padding: 3px 5px;
-  }
-  .brand-title-text {
+  .header-logout-label {
     display: none !important;
   }
-  .header-logout-btn span {
-    display: none !important;
+  .header-logout-btn {
+    padding: 0 7px !important;
   }
   .header-user-select {
     max-width: 88px !important;
@@ -540,6 +585,21 @@ h1, h2, h3, h4, h5 {
     background: #FFFFFF;
     color: var(--slt-deep-blue);
     box-shadow: var(--shadow-sm);
+  }
+
+  .desktop-nav-logout {
+    margin-left: auto;
+    color: #DC2626 !important;
+    background: #FEF2F2 !important;
+    border: 1px solid #FECACA !important;
+    font-weight: 700 !important;
+  }
+
+  .desktop-nav-logout:hover {
+    background: #FEE2E2 !important;
+    border-color: #F87171 !important;
+    color: #B91C1C !important;
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.15) !important;
   }
 }
 

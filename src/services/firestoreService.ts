@@ -6,12 +6,14 @@ import {
   getDocs,
   writeBatch,
   deleteDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import type {
   InventoryItem,
   LedgerTransaction,
   CustomerIssuance,
   StockTransfer,
+  UserPersona,
 } from "../types/inventory";
 
 /* -------------------------------------------------------------------
@@ -22,6 +24,7 @@ export const COLLECTIONS = {
   LEDGER: "ledger",
   CUSTOMER_ISSUANCES: "customerIssuances",
   TRANSFERS: "transfers",
+  USERS: "users",
 } as const;
 
 // Maximum batch size in Firestore is 500, we use 400 for safety margin
@@ -144,6 +147,117 @@ export const fetchTransfersFromFirestore = async (): Promise<StockTransfer[]> =>
 };
 
 /* -------------------------------------------------------------------
+   USERS  –  Firestore CRUD & Real-Time Sync
+------------------------------------------------------------------- */
+export const pushUsersToFirestore = async (users: UserPersona[]) => {
+  if (!users || users.length === 0) return;
+  for (let i = 0; i < users.length; i += BATCH_SIZE) {
+    const chunk = users.slice(i, i + BATCH_SIZE);
+    const batch = writeBatch(db);
+    for (const u of chunk) {
+      const docRef = doc(db, COLLECTIONS.USERS, u.id);
+      batch.set(docRef, cleanDoc(u), { merge: true });
+    }
+    await batch.commit();
+  }
+};
+
+export const pushSingleUser = async (user: UserPersona) => {
+  const docRef = doc(db, COLLECTIONS.USERS, user.id);
+  await setDoc(docRef, cleanDoc(user), { merge: true });
+};
+
+export const deleteSingleUser = async (id: string) => {
+  const docRef = doc(db, COLLECTIONS.USERS, id);
+  await deleteDoc(docRef);
+};
+
+export const fetchUsersFromFirestore = async (): Promise<UserPersona[]> => {
+  const snapshot = await getDocs(collection(db, COLLECTIONS.USERS));
+  return snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as UserPersona));
+};
+
+/* -------------------------------------------------------------------
+   REAL-TIME SUBSCRIPTIONS (Firestore onSnapshot Live Streams)
+   Automatically updates all connected clients when ANY user updates data.
+------------------------------------------------------------------- */
+export const subscribeToInventory = (callback: (items: InventoryItem[]) => void): (() => void) => {
+  const colRef = collection(db, COLLECTIONS.INVENTORY);
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      if (snapshot.empty) return;
+      const items = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as InventoryItem));
+      callback(items);
+    },
+    (err) => {
+      console.warn("[Firestore] Real-time inventory sync warning:", err);
+    }
+  );
+};
+
+export const subscribeToLedger = (callback: (transactions: LedgerTransaction[]) => void): (() => void) => {
+  const colRef = collection(db, COLLECTIONS.LEDGER);
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      if (snapshot.empty) return;
+      const txs = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as LedgerTransaction));
+      txs.sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
+      callback(txs);
+    },
+    (err) => {
+      console.warn("[Firestore] Real-time ledger sync warning:", err);
+    }
+  );
+};
+
+export const subscribeToUsers = (callback: (users: UserPersona[]) => void): (() => void) => {
+  const colRef = collection(db, COLLECTIONS.USERS);
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      if (snapshot.empty) return;
+      const users = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as UserPersona));
+      callback(users);
+    },
+    (err) => {
+      console.warn("[Firestore] Real-time users sync warning:", err);
+    }
+  );
+};
+
+export const subscribeToCustomerIssuances = (callback: (issuances: CustomerIssuance[]) => void): (() => void) => {
+  const colRef = collection(db, COLLECTIONS.CUSTOMER_ISSUANCES);
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      if (snapshot.empty) return;
+      const issuances = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as CustomerIssuance));
+      callback(issuances);
+    },
+    (err) => {
+      console.warn("[Firestore] Real-time issuances sync warning:", err);
+    }
+  );
+};
+
+export const subscribeToTransfers = (callback: (transfers: StockTransfer[]) => void): (() => void) => {
+  const colRef = collection(db, COLLECTIONS.TRANSFERS);
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      if (snapshot.empty) return;
+      const transfers = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as StockTransfer));
+      callback(transfers);
+    },
+    (err) => {
+      console.warn("[Firestore] Real-time transfers sync warning:", err);
+    }
+  );
+};
+
+/* -------------------------------------------------------------------
    FULL SYNC  –  Push ALL data to Firestore
 ------------------------------------------------------------------- */
 export const pushAllDataToFirestore = async (data: {
@@ -151,16 +265,23 @@ export const pushAllDataToFirestore = async (data: {
   ledger: LedgerTransaction[];
   customerIssuances: CustomerIssuance[];
   transfers: StockTransfer[];
+  users?: UserPersona[];
 }): Promise<{ success: boolean; error?: string }> => {
   try {
-    console.log("[Firestore] Starting full data sync...");
+    console.log("[Firestore] Starting full real-time data sync...");
 
-    await Promise.all([
+    const tasks: Promise<any>[] = [
       pushInventoryToFirestore(data.inventory),
       pushLedgerToFirestore(data.ledger),
       pushIssuancesToFirestore(data.customerIssuances),
       pushTransfersToFirestore(data.transfers),
-    ]);
+    ];
+
+    if (data.users && data.users.length > 0) {
+      tasks.push(pushUsersToFirestore(data.users));
+    }
+
+    await Promise.all(tasks);
 
     console.log("[Firestore] ✅ Full data sync complete!");
     return { success: true };

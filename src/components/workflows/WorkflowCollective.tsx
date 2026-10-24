@@ -28,6 +28,7 @@ import { InventoryItem, UserPersona, SubCategoryCode, OpenScannerFn } from '../.
 import { storageService } from '../../services/storage';
 import { extractSerialNumber, findEquipmentByBarcode } from '../../utils/barcodeParser';
 import confetti from 'canvas-confetti';
+import { SearchableSelect } from '../common/SearchableSelect';
 
 interface WorkflowCollectiveProps {
   inventory: InventoryItem[];
@@ -82,12 +83,6 @@ export const WorkflowCollective: React.FC<WorkflowCollectiveProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Quick edit modal for Receiving / Inbound
-  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-  const [editOnHand, setEditOnHand] = useState<number>(0);
-  const [editReceiving, setEditReceiving] = useState<number>(0);
-  const [editInbound, setEditInbound] = useState<number>(0);
-
   const selectedItem = inventory.find((i) => i.id === selectedItemId);
 
   const filteredItems = collItems.filter((i) => {
@@ -96,29 +91,6 @@ export const WorkflowCollective: React.FC<WorkflowCollectiveProps> = ({
   });
 
   const totalOnHand = collItems.reduce((sum, i) => sum + i.quantity, 0);
-  const totalReceiving = collItems.reduce((sum, i) => sum + (i.receiving || 0), 0);
-  const totalInbound = collItems.reduce((sum, i) => sum + (i.inbound || 0), 0);
-
-  const handleOpenEdit = (item: InventoryItem) => {
-    setEditingItem(item);
-    setEditOnHand(item.quantity);
-    setEditReceiving(item.receiving || 0);
-    setEditInbound(item.inbound || 0);
-  };
-
-  const handleSaveEdit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingItem) return;
-
-    storageService.updateItemStockStages(editingItem.id, {
-      quantity: editOnHand,
-      receiving: editReceiving,
-      inbound: editInbound,
-    });
-
-    onSuccess(`Updated stock stages for ${editingItem.materialCode}: On-hand: ${editOnHand}, Receiving: ${editReceiving}, Inbound: ${editInbound}`);
-    setEditingItem(null);
-  };
 
   // Strictly STOCK INCREASE (+) ONLY - Direct Collection from Customer Premises
   const handleCustomerCollect = (e: React.FormEvent) => {
@@ -219,13 +191,11 @@ export const WorkflowCollective: React.FC<WorkflowCollectiveProps> = ({
 
   // Export CSV matching user's exact sheet format
   const handleExportCSV = () => {
-    const headers = ['Material Code', 'Item Description', 'On-Hand', 'Receiving', 'Inbound'];
+    const headers = ['Material Code', 'Item Description', 'On-Hand'];
     const rows = collItems.map((i) => [
       `"${i.materialCode}"`,
       `"${i.description}"`,
       i.quantity,
-      i.receiving || 0,
-      i.inbound || 0,
     ]);
 
     const csvContent =
@@ -329,7 +299,7 @@ export const WorkflowCollective: React.FC<WorkflowCollectiveProps> = ({
       </div>
 
       {/* Summary KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         <div className="card" style={{ padding: '14px 18px', borderLeft: '4px solid #6D28D9' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Total SKUs Master</div>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#4C1D95', marginTop: 4 }}>{collItems.length} Items</div>
@@ -340,18 +310,6 @@ export const WorkflowCollective: React.FC<WorkflowCollectiveProps> = ({
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>On-Hand Stock</div>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--status-success)', marginTop: 4 }}>{totalOnHand} Units</div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Available in depot</div>
-        </div>
-
-        <div className="card" style={{ padding: '14px 18px', borderLeft: '4px solid var(--slt-deep-blue)' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Receiving Stage</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--slt-deep-blue)', marginTop: 4 }}>{totalReceiving} Units</div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Under depot verification</div>
-        </div>
-
-          <div className="card" style={{ padding: '14px 18px', borderLeft: '4px solid var(--status-warning)' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Inbound Stage</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--status-warning)', marginTop: 4 }}>{totalInbound} Units</div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>In-transit from Field Recovery Teams</div>
         </div>
       </div>
 
@@ -442,9 +400,7 @@ export const WorkflowCollective: React.FC<WorkflowCollectiveProps> = ({
                 <th>Item Description</th>
                 <th style={{ width: 90, textAlign: 'center' }}>Primary</th>
                 <th style={{ width: 100, textAlign: 'center' }}>On-hand</th>
-                <th style={{ width: 90, textAlign: 'center' }}>Receiving</th>
-                <th style={{ width: 90, textAlign: 'center' }}>Inbound</th>
-                <th style={{ width: 160, textAlign: 'right' }}>Actions</th>
+                <th style={{ width: 140, textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -482,38 +438,6 @@ export const WorkflowCollective: React.FC<WorkflowCollectiveProps> = ({
                       }}
                     >
                       {item.quantity}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        padding: '4px 8px',
-                        borderRadius: 4,
-                        backgroundColor: (item.receiving || 0) > 0 ? '#EFF6FF' : '#F1F5F9',
-                        color: (item.receiving || 0) > 0 ? '#1D4ED8' : 'var(--text-muted)',
-                        fontWeight: 700,
-                        fontSize: '0.85rem',
-                        minWidth: 32,
-                      }}
-                    >
-                      {item.receiving || 0}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        padding: '4px 8px',
-                        borderRadius: 4,
-                        backgroundColor: (item.inbound || 0) > 0 ? '#FEF3C7' : '#F1F5F9',
-                        color: (item.inbound || 0) > 0 ? '#B45309' : 'var(--text-muted)',
-                        fontWeight: 700,
-                        fontSize: '0.85rem',
-                        minWidth: 32,
-                      }}
-                    >
-                      {item.inbound || 0}
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }}>
@@ -567,19 +491,6 @@ export const WorkflowCollective: React.FC<WorkflowCollectiveProps> = ({
                           <Trash2 size={12} />
                         </button>
                       )}
-                      <button
-                        onClick={() => handleOpenEdit(item)}
-                        className="btn btn-outline"
-                        style={{
-                          minHeight: 28,
-                          padding: '3px 8px',
-                          fontSize: '0.72rem',
-                          gap: 3,
-                        }}
-                        title="Update Stock Stages"
-                      >
-                        <span>Stages</span>
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -588,91 +499,6 @@ export const WorkflowCollective: React.FC<WorkflowCollectiveProps> = ({
           </table>
         </div>
       </div>
-
-      {/* Quick Edit Modal for On-hand, Receiving, Inbound */}
-      {editingItem && (
-        <div className="modal-overlay" onClick={() => setEditingItem(null)}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 440, padding: 24 }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#4C1D95' }}>
-                  Update Stock Stages
-                </h3>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  {editingItem.materialCode} &mdash; {editingItem.description}
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSaveEdit}>
-              <div className="input-group">
-                <label className="input-label">
-                  <span>1. On-Hand Stock (Available)</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={editOnHand}
-                  onChange={(e) => setEditOnHand(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="input-field mono"
-                  style={{ fontWeight: 800 }}
-                  required
-                />
-              </div>
-
-              <div className="input-group">
-                <label className="input-label">
-                  <span>2. Receiving Stage (Under Verification)</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={editReceiving}
-                  onChange={(e) => setEditReceiving(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="input-field mono"
-                  style={{ fontWeight: 800 }}
-                />
-              </div>
-
-              <div className="input-group">
-                <label className="input-label">
-                  <span>3. Inbound Stage (In-Transit from Field Teams)</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={editInbound}
-                  onChange={(e) => setEditInbound(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="input-field mono"
-                  style={{ fontWeight: 800 }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                <button
-                  type="button"
-                  onClick={() => setEditingItem(null)}
-                  className="btn btn-outline"
-                  style={{ flex: 1, minHeight: 44 }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  style={{ flex: 1, minHeight: 44, backgroundColor: '#6D28D9' }}
-                >
-                  Save Stages
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Stock Increase Form: Direct Customer Premise Collection */}
       <form onSubmit={handleCustomerCollect} className="card" style={{ borderTop: '4px solid #6D28D9' }}>
@@ -748,18 +574,19 @@ export const WorkflowCollective: React.FC<WorkflowCollectiveProps> = ({
             <span style={{ fontWeight: 700, color: '#4C1D95' }}>Select Recovered Customer Equipment / SKU Model</span>
             <span style={{ color: '#6D28D9', fontWeight: 700 }}>TC-OPNC-C Catalog ({collItems.length} SKUs)</span>
           </label>
-          <select
+          <SearchableSelect
             value={selectedItemId}
-            onChange={(e) => setSelectedItemId(e.target.value)}
-            className="input-field"
-            style={{ fontWeight: 600 }}
-          >
-            {collItems.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.materialCode} - {item.description} (Current On-hand: {item.quantity} {item.unit})
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedItemId(val)}
+            placeholder="Search recovered equipment / SKU..."
+            searchPlaceholder="Type SKU code, description, or model name..."
+            options={collItems.map((item) => ({
+              value: item.id,
+              label: item.materialCode,
+              subLabel: item.description,
+              badge: `Stock: ${item.quantity} ${item.unit}`,
+              badgeColor: item.quantity > 0 ? '#15803D' : '#94A3B8',
+            }))}
+          />
         </div>
 
         {/* Customer Information Row */}

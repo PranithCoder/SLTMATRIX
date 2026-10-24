@@ -34,6 +34,7 @@ import { CustomerReturnModal } from './CustomerReturnModal';
 import { DuplicateWarningModal } from '../alerts/DuplicateWarningModal';
 import { extractSerialNumber, findEquipmentByBarcode } from '../../utils/barcodeParser';
 import confetti from 'canvas-confetti';
+import { SearchableSelect } from '../common/SearchableSelect';
 
 interface WorkflowNewConnectionProps {
   inventory: InventoryItem[];
@@ -1050,49 +1051,28 @@ export const WorkflowNewConnection: React.FC<WorkflowNewConnectionProps> = ({
                 {selectedItem ? `Category: ${selectedItem.subCategory} • Stock: ${selectedItem.quantity} ${selectedItem.unit}` : `TC-OPNC (${ncItems.length} SKUs)`}
               </span>
             </label>
-            <select
+            <SearchableSelect
               value={selectedItemId}
-              onChange={(e) => {
-                setSelectedItemId(e.target.value);
-                const itm = inventory.find((i) => i.id === e.target.value);
+              onChange={(val) => {
+                setSelectedItemId(val);
+                const itm = inventory.find((i) => i.id === val);
                 if (itm?.isSerialized && itm.serialNumbers && itm.serialNumbers.length > 0) {
                   setSerialNumber(itm.serialNumbers[0]);
                 } else {
                   setSerialNumber('');
                 }
               }}
-              className="input-field"
-              style={{ fontWeight: 600 }}
-            >
-              <optgroup label="Standard New Connection (TC-OPNC)">
-                {inventory.filter((i) => i.subCategory === 'TCOPNC').map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.materialCode} - {item.description} (Stock: {item.quantity} {item.unit}) {item.isSerialized ? '[SERIALIZED]' : ''}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Collective Stock (TC-OPNC-C)">
-                {inventory.filter((i) => i.subCategory === 'TCOPNC-C').map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.materialCode} - {item.description} (Stock: {item.quantity} {item.unit}) {item.isSerialized ? '[SERIALIZED]' : ''}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Workshop Returns (TC-OPNC-R)">
-                {inventory.filter((i) => i.subCategory === 'TCOPNC-R').map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.materialCode} - {item.description} (Stock: {item.quantity} {item.unit}) {item.isSerialized ? '[SERIALIZED]' : ''}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Rehabilitation Hardware (TC-OPCDR / TC-OPCDR-R)">
-                {inventory.filter((i) => i.subCategory.startsWith('TC-OPCDR')).map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.materialCode} - {item.description} (Stock: {item.quantity} {item.unit}) {item.isSerialized ? '[SERIALIZED]' : ''}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
+              placeholder="Search or select equipment / SKU to issue..."
+              searchPlaceholder="Type SKU code, description, router, fiber, or serial..."
+              options={inventory.map((item) => ({
+                value: item.id,
+                label: item.materialCode,
+                subLabel: item.description,
+                group: item.subCategory,
+                badge: `${item.quantity} ${item.unit}${item.isSerialized ? ' • SERIALIZED' : ''}`,
+                badgeColor: item.quantity > 0 ? '#15803D' : '#DC2626',
+              }))}
+            />
           </div>
 
           {/* STEP 2: Serial Number (OPTIONAL) */}

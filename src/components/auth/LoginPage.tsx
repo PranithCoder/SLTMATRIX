@@ -5,16 +5,15 @@ import {
   Eye, 
   EyeOff, 
   ShieldCheck, 
-  KeyRound, 
-  Zap, 
   AlertCircle, 
   CheckCircle2, 
   Radio, 
   Cpu, 
   ArrowRight,
-  Server
+  Server,
+  Phone
 } from 'lucide-react';
-import { storageService, MOCK_AUTH_CREDENTIALS } from '../../services/storage';
+import { storageService } from '../../services/storage';
 import { UserPersona } from '../../types/inventory';
 import confetti from 'canvas-confetti';
 
@@ -31,13 +30,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isShaking, setIsShaking] = useState(false);
-
-  // Quick 1-click Auto Fill for Demo Credentials
-  const handleAutoFill = () => {
-    setEmail(MOCK_AUTH_CREDENTIALS.email);
-    setPassword(MOCK_AUTH_CREDENTIALS.password);
-    setErrorMessage(null);
-  };
+  const [showForgotHelp, setShowForgotHelp] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,8 +55,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setTimeout(() => {
       setStatusMessage('Validating Operator Permissions & Tokens...');
       
-      setTimeout(() => {
-        const result = storageService.login(email, password);
+      setTimeout(async () => {
+        const result = await storageService.login(email, password);
 
         if (result.success && result.user) {
           setStatusMessage('Access Granted! Launching MatriX Node...');
@@ -155,95 +148,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </p>
         </div>
 
-        {/* 1-Click Quick Demo Credentials Pill */}
-        <div className="demo-badge-pill" style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <KeyRound size={16} style={{ color: '#00B4D8' }} />
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#BAE6FD', letterSpacing: '0.03em' }}>
-                SUPER ADMIN (MR. KANISHKA)
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#E2E8F0', fontFamily: 'var(--font-mono)' }}>
-                kanishka@slt.lk <span style={{ color: '#64748B' }}>/</span> slt123
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleAutoFill}
-            style={{
-              border: 'none',
-              background: 'linear-gradient(135deg, #0056B3, #00B4D8)',
-              color: '#FFFFFF',
-              borderRadius: 6,
-              padding: '5px 10px',
-              fontSize: '0.74rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              boxShadow: '0 2px 8px rgba(0, 180, 216, 0.3)',
-              transition: 'all 0.2s ease',
-            }}
-            title="Click to auto-fill kanishka@slt.lk and slt123"
-          >
-            <Zap size={12} />
-            <span>Admin</span>
-          </button>
-        </div>
-
-        {/* Quick Operator / Tech Accounts Selector */}
-        <div
-          style={{
-            padding: '8px 12px',
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
-            borderRadius: 8,
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            marginBottom: 20,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 6,
-          }}
-        >
-          <div style={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: 700 }}>
-            Or Login as Standard Technician / Operator (Password: tech123):
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {[
-              { name: 'Sunil', email: 'sunil@slt.lk' },
-              { name: 'Nuwan', email: 'nuwan@slt.lk' },
-              { name: 'Chaminda', email: 'chaminda@slt.lk' },
-              { name: 'Kasun', email: 'kasun@slt.lk' },
-              { name: 'Dilshan', email: 'dilshan@slt.lk' },
-            ].map(tech => (
-              <button
-                key={tech.email}
-                type="button"
-                onClick={() => {
-                  setEmail(tech.email);
-                  setPassword('tech123');
-                  setErrorMessage(null);
-                }}
-                style={{
-                  padding: '3px 8px',
-                  borderRadius: 4,
-                  border: '1px solid #334155',
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  color: '#CBD5E1',
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {tech.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Error Alert Banner */}
         {errorMessage && (
           <div
@@ -323,7 +227,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               <button
                 type="button"
                 onClick={() => {
-                  alert("Please use default demonstration password: 'slt123' or contact SLT Enterprise IT Support (Ext: 4402).");
+                  setShowForgotHelp(!showForgotHelp);
                 }}
                 style={{
                   background: 'none',
@@ -338,6 +242,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 Forgot?
               </button>
             </div>
+
+            {showForgotHelp && (
+              <div
+                style={{
+                  marginBottom: 10,
+                  padding: '10px 12px',
+                  backgroundColor: 'rgba(0, 180, 216, 0.12)',
+                  border: '1px solid rgba(0, 180, 216, 0.4)',
+                  borderRadius: 8,
+                  fontSize: '0.78rem',
+                  color: '#BAE6FD',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <Phone size={15} color="#38BDF8" style={{ flexShrink: 0 }} />
+                <div>
+                  Please contact <strong>Kanishka (IBT)</strong> or <strong>Pranith</strong> (<a href="tel:0774726136" style={{ color: '#38BDF8', fontWeight: 700, textDecoration: 'underline' }}>0774726136</a>) for password reset.
+                </div>
+              </div>
+            )}
             
             <div style={{ position: 'relative' }}>
               <input
@@ -383,22 +309,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {/* Remember Me Option */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                style={{
-                  width: 16,
-                  height: 16,
-                  accentColor: '#00B4D8',
-                  cursor: 'pointer',
-                }}
-              />
-              <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Remember this terminal</span>
-            </label>
+          {/* Session Security Indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', backgroundColor: 'rgba(30, 41, 59, 0.7)', borderRadius: 6, border: '1px solid #334155' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.74rem', color: '#94A3B8' }}>
+              <ShieldCheck size={14} color="#38BDF8" />
+              <span>Strict Policy: Login compulsory on page refresh</span>
+            </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: '#10B981', fontWeight: 600 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
@@ -459,6 +375,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             <Cpu size={13} style={{ color: '#43B02A' }} />
             <span>Dostocks v1.0 Sync</span>
           </div>
+        </div>
+
+        {/* Developer Contact Footer */}
+        <div
+          style={{
+            marginTop: 16,
+            padding: '10px 16px',
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: 10,
+            fontSize: '0.78rem',
+            color: '#94A3B8',
+            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            gap: 8,
+          }}
+        >
+          <span>Developed by <strong style={{ color: '#FFFFFF' }}>Pranith S</strong> (<a href="tel:0774726136" style={{ color: '#38BDF8', fontWeight: 700, textDecoration: 'none' }}>0774726136</a>)</span>
+          <span style={{ color: '#475569' }}>•</span>
+          <span style={{ color: '#4ADE80', fontWeight: 700 }}>Contact for system development</span>
         </div>
       </div>
     </div>

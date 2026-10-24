@@ -21,6 +21,7 @@ import { InventoryItem, SubCategoryCode, UserPersona, OpenScannerFn } from '../.
 import { storageService } from '../../services/storage';
 import { extractSerialNumber, findEquipmentByBarcode } from '../../utils/barcodeParser';
 import confetti from 'canvas-confetti';
+import { SearchableSelect } from '../common/SearchableSelect';
 
 interface WorkflowReturnsProps {
   inventory: InventoryItem[];
@@ -65,12 +66,6 @@ export const WorkflowReturns: React.FC<WorkflowReturnsProps> = ({
   const [returnDate, setReturnDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-
-  // Quick edit stage modal
-  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-  const [editOnHand, setEditOnHand] = useState<number>(0);
-  const [editReceiving, setEditReceiving] = useState<number>(0);
-  const [editInbound, setEditInbound] = useState<number>(0);
 
   React.useEffect(() => {
     if (prefilledSerial) {
@@ -118,29 +113,6 @@ export const WorkflowReturns: React.FC<WorkflowReturnsProps> = ({
   });
 
   const totalOnHand = currentCategoryItems.reduce((sum, i) => sum + i.quantity, 0);
-  const totalReceiving = currentCategoryItems.reduce((sum, i) => sum + (i.receiving || 0), 0);
-  const totalInbound = currentCategoryItems.reduce((sum, i) => sum + (i.inbound || 0), 0);
-
-  const handleOpenEdit = (item: InventoryItem) => {
-    setEditingItem(item);
-    setEditOnHand(item.quantity);
-    setEditReceiving(item.receiving || 0);
-    setEditInbound(item.inbound || 0);
-  };
-
-  const handleSaveEdit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingItem) return;
-
-    storageService.updateItemStockStages(editingItem.id, {
-      quantity: editOnHand,
-      receiving: editReceiving,
-      inbound: editInbound,
-    });
-
-    onSuccess(`Updated stages for ${editingItem.materialCode}: On-hand: ${editOnHand}, Receiving: ${editReceiving}, Inbound: ${editInbound}`);
-    setEditingItem(null);
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,8 +209,8 @@ export const WorkflowReturns: React.FC<WorkflowReturnsProps> = ({
 
   const handleExportCSV = () => {
     const headers = returnType === 'TC-OPCDR-R'
-      ? ['Locator', 'Item', 'Item Description', 'UOM', 'On-hand', 'Inbound']
-      : ['Item', 'Item Description', 'On-hand', 'Receiving', 'Inbound'];
+      ? ['Locator', 'Item', 'Item Description', 'UOM', 'On-hand']
+      : ['Item', 'Item Description', 'On-hand'];
 
     const rows = currentCategoryItems.map((i) => {
       if (returnType === 'TC-OPCDR-R') {
@@ -248,15 +220,12 @@ export const WorkflowReturns: React.FC<WorkflowReturnsProps> = ({
           `"${i.description}"`,
           `"${i.unit}"`,
           i.quantity,
-          i.inbound || '',
         ];
       }
       return [
         `"${i.materialCode}"`,
         `"${i.description}"`,
         i.quantity,
-        i.receiving || '',
-        i.inbound || '',
       ];
     });
 
@@ -407,7 +376,7 @@ export const WorkflowReturns: React.FC<WorkflowReturnsProps> = ({
       </div>
 
       {/* Summary KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
         <div
           className="card"
           style={{
@@ -435,22 +404,6 @@ export const WorkflowReturns: React.FC<WorkflowReturnsProps> = ({
             {totalOnHand.toLocaleString()} Units
           </div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Segregated in warehouse</div>
-        </div>
-
-        <div className="card" style={{ padding: '14px 18px', borderLeft: '4px solid var(--slt-deep-blue)' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Receiving Stage</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--slt-deep-blue)', marginTop: 4 }}>
-            {totalReceiving} Units
-          </div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Under inspection</div>
-        </div>
-
-        <div className="card" style={{ padding: '14px 18px', borderLeft: '4px solid var(--status-warning)' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Inbound Stage</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--status-warning)', marginTop: 4 }}>
-            {totalInbound} Units
-          </div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>In-transit from branches</div>
         </div>
       </div>
 
@@ -551,10 +504,8 @@ export const WorkflowReturns: React.FC<WorkflowReturnsProps> = ({
                 <th>Item (Material Code)</th>
                 <th>Item Description</th>
                 <th style={{ width: 70, textAlign: 'center' }}>UOM</th>
-                <th style={{ textAlign: 'center', width: 80 }}>On-hand</th>
-                <th style={{ textAlign: 'center', width: 80 }}>Receiving</th>
-                <th style={{ textAlign: 'center', width: 80 }}>Inbound</th>
-                <th style={{ textAlign: 'right', width: 150 }}>Actions</th>
+                <th style={{ textAlign: 'center', width: 90 }}>On-hand</th>
+                <th style={{ textAlign: 'right', width: 140 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -632,38 +583,6 @@ export const WorkflowReturns: React.FC<WorkflowReturnsProps> = ({
                       {item.quantity.toLocaleString()}
                     </span>
                   </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        padding: '4px 8px',
-                        borderRadius: 4,
-                        backgroundColor: (item.receiving || 0) > 0 ? '#EFF6FF' : '#F1F5F9',
-                        color: (item.receiving || 0) > 0 ? '#1D4ED8' : 'var(--text-muted)',
-                        fontWeight: 700,
-                        fontSize: '0.85rem',
-                        minWidth: 32,
-                      }}
-                    >
-                      {item.receiving || 0}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span
-                      style={{
-                        display: 'inline-block',
-                        padding: '4px 8px',
-                        borderRadius: 4,
-                        backgroundColor: (item.inbound || 0) > 0 ? '#FEF3C7' : '#F1F5F9',
-                        color: (item.inbound || 0) > 0 ? '#B45309' : 'var(--text-muted)',
-                        fontWeight: 700,
-                        fontSize: '0.85rem',
-                        minWidth: 32,
-                      }}
-                    >
-                      {item.inbound || 0}
-                    </span>
-                  </td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
                       {onEditProduct && (
@@ -715,19 +634,6 @@ export const WorkflowReturns: React.FC<WorkflowReturnsProps> = ({
                           <Trash2 size={12} />
                         </button>
                       )}
-                      <button
-                        onClick={() => handleOpenEdit(item)}
-                        className="btn btn-outline"
-                        style={{
-                          minHeight: 28,
-                          padding: '3px 7px',
-                          fontSize: '0.72rem',
-                          gap: 3,
-                        }}
-                        title="Update On-hand / Receiving / Inbound stages"
-                      >
-                        <span>Stages</span>
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -736,91 +642,6 @@ export const WorkflowReturns: React.FC<WorkflowReturnsProps> = ({
           </table>
         </div>
       </div>
-
-      {/* Quick Edit Stage Modal */}
-      {editingItem && (
-        <div className="modal-overlay" onClick={() => setEditingItem(null)}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 440, padding: 24 }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#C2410C' }}>
-                  Update Stock Stages
-                </h3>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  {editingItem.materialCode} — {editingItem.description}
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSaveEdit}>
-              <div className="input-group">
-                <label className="input-label">
-                  <span>1. On-Hand Stock (Available in Segregated Bay)</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={editOnHand}
-                  onChange={(e) => setEditOnHand(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="input-field mono"
-                  style={{ fontWeight: 800 }}
-                  required
-                />
-              </div>
-
-              <div className="input-group">
-                <label className="input-label">
-                  <span>2. Receiving Stage (Under Verification)</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={editReceiving}
-                  onChange={(e) => setEditReceiving(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="input-field mono"
-                  style={{ fontWeight: 800 }}
-                />
-              </div>
-
-              <div className="input-group">
-                <label className="input-label">
-                  <span>3. Inbound Stage (In-Transit)</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={editInbound}
-                  onChange={(e) => setEditInbound(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="input-field mono"
-                  style={{ fontWeight: 800 }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                <button
-                  type="button"
-                  onClick={() => setEditingItem(null)}
-                  className="btn btn-outline"
-                  style={{ flex: 1, minHeight: 44 }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  style={{ flex: 1, minHeight: 44, backgroundColor: '#C2410C' }}
-                >
-                  Save Stages
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Return Intake Form */}
       <form onSubmit={handleSubmit} className="card">
@@ -859,18 +680,19 @@ export const WorkflowReturns: React.FC<WorkflowReturnsProps> = ({
             <span>Select Return Material / SKU</span>
             <span className="code-tag">{returnType}</span>
           </label>
-          <select
+          <SearchableSelect
             value={selectedMaterialCode}
-            onChange={(e) => setSelectedMaterialCode(e.target.value)}
-            className="input-field"
-            style={{ fontWeight: 600 }}
-          >
-            {currentCategoryItems.map((item) => (
-              <option key={item.id} value={item.materialCode}>
-                {item.materialCode} - {item.description} (Stock: {item.quantity} {item.unit})
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedMaterialCode(val)}
+            placeholder="Search return material / SKU..."
+            searchPlaceholder="Type SKU code or description to filter..."
+            options={currentCategoryItems.map((item) => ({
+              value: item.materialCode,
+              label: item.materialCode,
+              subLabel: item.description,
+              badge: `Stock: ${item.quantity} ${item.unit}`,
+              badgeColor: item.quantity > 0 ? '#15803D' : '#94A3B8',
+            }))}
+          />
         </div>
 
         {/* Serial Number (if serialized) OR Quantity (if bulk) */}

@@ -25,6 +25,7 @@ import { storageService } from '../../services/storage';
 import { parseBatchLocatorCode } from '../../services/batchParser';
 import { extractSerialNumber, findEquipmentByBarcode } from '../../utils/barcodeParser';
 import confetti from 'canvas-confetti';
+import { SearchableSelect } from '../common/SearchableSelect';
 
 interface WorkflowDispatchReceiveProps {
   inventory: InventoryItem[];
@@ -697,35 +698,23 @@ export const WorkflowDispatchReceive: React.FC<WorkflowDispatchReceiveProps> = (
             </div>
 
             {/* Quick Filter Box for Dropdown */}
-            <div style={{ position: 'relative', marginBottom: 6 }}>
-              <input
-                type="text"
-                value={itemSearchQuery}
-                onChange={(e) => setItemSearchQuery(e.target.value)}
-                placeholder="Filter dropdown by SKU code or name..."
-                className="input-field"
-                style={{ paddingLeft: 30, minHeight: 34, fontSize: '0.8rem' }}
-              />
-              <Search size={14} style={{ position: 'absolute', left: 10, top: 10, color: '#64748B' }} />
-            </div>
-
-            <select
+            <SearchableSelect
               value={selectedItemId}
-              onChange={(e) => {
-                setSelectedItemId(e.target.value);
-                const itm = inventory.find((i) => i.id === e.target.value);
+              onChange={(val) => {
+                setSelectedItemId(val);
+                const itm = inventory.find((i) => i.id === val);
                 if (itm) setUnit(itm.unit);
               }}
-              className="input-field"
-              style={{ fontWeight: 700, fontSize: '0.9rem' }}
-              required
-            >
-              {filteredCatalogItems.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.materialCode} &mdash; {item.description} (Current Stock: {item.quantity} {item.unit})
-                </option>
-              ))}
-            </select>
+              placeholder="Search or select material to dispatch..."
+              searchPlaceholder="Type SKU code, description, or keyword..."
+              options={categoryCatalog.map((item) => ({
+                value: item.id,
+                label: item.materialCode,
+                subLabel: item.description,
+                badge: `Stock: ${item.quantity} ${item.unit}`,
+                badgeColor: item.quantity > 0 ? '#15803D' : '#DC2626',
+              }))}
+            />
           </div>
 
           {/* Selected Item Preview Chip */}

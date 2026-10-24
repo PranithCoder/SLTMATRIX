@@ -23,6 +23,7 @@ import {
 import { InventoryItem, UserPersona, SubCategoryCode } from '../../types/inventory';
 import { storageService } from '../../services/storage';
 import confetti from 'canvas-confetti';
+import { SearchableSelect } from '../common/SearchableSelect';
 
 interface WorkflowRehabProps {
   inventory: InventoryItem[];
@@ -423,14 +424,6 @@ export const WorkflowRehab: React.FC<WorkflowRehabProps> = ({
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Cables, Poles & Fittings Available</div>
         </div>
 
-        <div className="card" style={{ padding: '14px 18px', borderLeft: '4px solid #D97706' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Inbound Intake Stage</div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#D97706', marginTop: 4 }}>
-            {totalInbound} Units
-          </div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>En-route from Central Dispatch</div>
-        </div>
-
         <div className="card" style={{ padding: '14px 18px', borderLeft: '4px solid #7C3AED' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Depot Locators Active</div>
           <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#7C3AED', marginTop: 4 }}>
@@ -603,8 +596,7 @@ export const WorkflowRehab: React.FC<WorkflowRehabProps> = ({
                   <th>Item Description</th>
                   <th style={{ width: 80, textAlign: 'center' }}>UOM</th>
                   <th style={{ width: 100, textAlign: 'center' }}>On-hand</th>
-                  <th style={{ width: 90, textAlign: 'center' }}>Inbound</th>
-                  <th style={{ width: 160, textAlign: 'right' }}>Actions</th>
+                  <th style={{ width: 140, textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -675,22 +667,6 @@ export const WorkflowRehab: React.FC<WorkflowRehabProps> = ({
                         }}
                       >
                         {item.quantity.toLocaleString()}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          padding: '3px 8px',
-                          borderRadius: 4,
-                          backgroundColor: (item.inbound || 0) > 0 ? '#FEF3C7' : '#F1F5F9',
-                          color: (item.inbound || 0) > 0 ? '#B45309' : 'var(--text-muted)',
-                          fontWeight: 700,
-                          fontSize: '0.85rem',
-                          minWidth: 30,
-                        }}
-                      >
-                        {item.inbound || 0}
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
@@ -848,18 +824,20 @@ export const WorkflowRehab: React.FC<WorkflowRehabProps> = ({
                 Sub-Category: TC-OPCDR ({rehabItems.length} SKUs)
               </span>
             </label>
-            <select
+            <SearchableSelect
               value={selectedItemId}
-              onChange={(e) => setSelectedItemId(e.target.value)}
-              className="input-field"
-              style={{ fontWeight: 600 }}
-            >
-              {rehabItems.map((item) => (
-                <option key={item.id} value={item.id}>
-                  [{item.binLocation || 'DEPOT'}] {item.materialCode} - {item.description} (Stock: {item.quantity} {item.unit})
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedItemId(val)}
+              placeholder="Search rehab material code or description..."
+              searchPlaceholder="Type SKU code, cable type, or locator..."
+              options={rehabItems.map((item) => ({
+                value: item.id,
+                label: item.materialCode,
+                subLabel: item.description,
+                group: item.binLocation || 'DEPOT',
+                badge: `Stock: ${item.quantity} ${item.unit}`,
+                badgeColor: item.quantity > 0 ? '#15803D' : '#94A3B8',
+              }))}
+            />
           </div>
 
           {/* Consumed Quantity & Available Balance Badge */}

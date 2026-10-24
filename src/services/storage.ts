@@ -4,6 +4,10 @@ import {
   pushLedgerToFirestore,
   pushIssuancesToFirestore,
   pushTransfersToFirestore,
+  pushUsersToFirestore,
+  pushSingleUser,
+  deleteSingleUser,
+  fetchUsersFromFirestore,
 } from './firestoreService';
 
 const STORAGE_KEYS = {
@@ -16,13 +20,13 @@ const STORAGE_KEYS = {
   CUSTOMER_ISSUANCES: 'slt_matrix_customer_issuances_v1',
   TRANSFERS: 'slt_matrix_transfers_v2',
   AUTH_SESSION: 'slt_matrix_auth_session_v1',
-  USERS: 'slt_matrix_users_v2',
+  USERS: 'slt_matrix_users_prod_v1',
   SYSTEM_ALERTS: 'slt_matrix_alerts_v1',
 };
 
 export const MOCK_AUTH_CREDENTIALS = {
   email: 'kanishka@slt.lk',
-  password: 'slt123',
+  password: 'kanishka@123',
   name: 'Mr. Kanishka',
   role: 'ADMIN_IBT',
   title: 'IBT Lead & Infrastructure Supervisor',
@@ -34,73 +38,13 @@ export const INITIAL_USERS: UserPersona[] = [
     id: 'USR-KANISHKA',
     name: 'Mr. Kanishka',
     email: 'kanishka@slt.lk',
-    password: 'slt123',
+    password: 'kanishka@123',
     role: 'ADMIN_IBT',
     title: 'IBT Lead & Infrastructure Supervisor',
     branch: 'SLT-MOBITEL Colombo HQ / Regional Ops',
     isOnline: true,
     lastActive: 'Just now',
     createdDate: '2025-01-01',
-  },
-  {
-    id: 'USR-SUNIL',
-    name: 'Sunil P.',
-    email: 'sunil@slt.lk',
-    password: 'tech123',
-    role: 'FIELD_TECH',
-    title: 'Senior Field Telecom Technician',
-    branch: 'Metro OSP Field Unit 04',
-    isOnline: false,
-    lastActive: '2026-10-23 09:15',
-    createdDate: '2025-01-02',
-  },
-  {
-    id: 'USR-NUWAN',
-    name: 'Nuwan K.',
-    email: 'nuwan@slt.lk',
-    password: 'tech123',
-    role: 'FIELD_TECH',
-    title: 'Field Installation Technician',
-    branch: 'Colombo Central OSP',
-    isOnline: false,
-    lastActive: '2026-10-23 08:45',
-    createdDate: '2025-01-03',
-  },
-  {
-    id: 'USR-CHAMINDA',
-    name: 'Chaminda S.',
-    email: 'chaminda@slt.lk',
-    password: 'tech123',
-    role: 'FIELD_TECH',
-    title: 'Fiber & Copper Installer',
-    branch: 'Kandy Regional Unit',
-    isOnline: false,
-    lastActive: '2026-10-22 17:30',
-    createdDate: '2025-01-04',
-  },
-  {
-    id: 'USR-KASUN',
-    name: 'Kasun T.',
-    email: 'kasun@slt.lk',
-    password: 'tech123',
-    role: 'OPERATOR',
-    title: 'Depot Inventory Clerk',
-    branch: 'Central Warehouse Stores',
-    isOnline: false,
-    lastActive: '2026-10-22 16:00',
-    createdDate: '2025-01-05',
-  },
-  {
-    id: 'USR-DILSHAN',
-    name: 'Dilshan R.',
-    email: 'dilshan@slt.lk',
-    password: 'tech123',
-    role: 'OPERATOR',
-    title: 'Workshop Returns Assistant',
-    branch: 'Central Workshop Depot',
-    isOnline: false,
-    lastActive: '2026-10-21 14:20',
-    createdDate: '2025-01-06',
   },
 ];
 
@@ -3537,6 +3481,9 @@ class StorageService {
   saveUsers(users: UserPersona[]): void {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    pushUsersToFirestore(users).catch((err) =>
+      console.warn('[Firestore] Users sync failed:', err)
+    );
   }
 
   addUser(user: Omit<UserPersona, 'id'>): UserPersona {
@@ -3551,12 +3498,18 @@ class StorageService {
     };
     users.push(newUser);
     this.saveUsers(users);
+    pushSingleUser(newUser).catch((err) =>
+      console.warn('[Firestore] pushSingleUser failed:', err)
+    );
     return newUser;
   }
 
   updateUser(updated: UserPersona): void {
     const users = this.getUsers().map(u => u.id === updated.id ? updated : u);
     this.saveUsers(users);
+    pushSingleUser(updated).catch((err) =>
+      console.warn('[Firestore] pushSingleUser failed:', err)
+    );
     const active = this.getActiveUser();
     if (active.id === updated.id) {
       this.setActiveUser(updated);
@@ -3571,7 +3524,38 @@ class StorageService {
     }
     const filtered = users.filter(u => u.id !== id);
     this.saveUsers(filtered);
+    deleteSingleUser(id).catch((err) =>
+      console.warn('[Firestore] deleteSingleUser failed:', err)
+    );
     return true;
+  }
+
+  /**
+   * Real-Time Stream Inbound Setters (Updates local cache without re-triggering outgoing pushes)
+   */
+  setLiveInventory(items: InventoryItem[]): void {
+    if (typeof window === 'undefined' || !items || items.length === 0) return;
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(items));
+  }
+
+  setLiveLedger(txs: LedgerTransaction[]): void {
+    if (typeof window === 'undefined' || !txs) return;
+    localStorage.setItem(STORAGE_KEYS.LEDGER, JSON.stringify(txs));
+  }
+
+  setLiveUsers(users: UserPersona[]): void {
+    if (typeof window === 'undefined' || !users || users.length === 0) return;
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  }
+
+  setLiveCustomerIssuances(issuances: CustomerIssuance[]): void {
+    if (typeof window === 'undefined' || !issuances) return;
+    localStorage.setItem(STORAGE_KEYS.CUSTOMER_ISSUANCES, JSON.stringify(issuances));
+  }
+
+  setLiveTransfers(transfers: StockTransfer[]): void {
+    if (typeof window === 'undefined' || !transfers) return;
+    localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify(transfers));
   }
 
   setUserOnlineStatus(userId: string, isOnline: boolean): void {
@@ -4322,17 +4306,34 @@ class StorageService {
   }
 
   isAuthenticated(): boolean {
-    return this.getAuthSession() !== null;
+    // Compulsory fresh authentication on every browser refresh/reload
+    return false;
   }
 
-  login(email: string, password: string): { success: boolean; user?: UserPersona; error?: string } {
+  async login(email: string, password: string): Promise<{ success: boolean; user?: UserPersona; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    const users = this.getUsers();
-    const found = users.find(
+    let users = this.getUsers();
+    let found = users.find(
       u => u.email.toLowerCase() === cleanEmail && (u.password || 'tech123') === cleanPass
     );
+
+    // If not found in local cache, query live Firestore database directly
+    if (!found) {
+      try {
+        const remoteUsers = await fetchUsersFromFirestore();
+        if (remoteUsers && remoteUsers.length > 0) {
+          this.setLiveUsers(remoteUsers);
+          users = remoteUsers;
+          found = users.find(
+            u => u.email.toLowerCase() === cleanEmail && (u.password || 'tech123') === cleanPass
+          );
+        }
+      } catch (err) {
+        console.warn('[Firestore] Remote user verification error:', err);
+      }
+    }
 
     if (found) {
       this.setUserOnlineStatus(found.id, true);
@@ -4352,7 +4353,7 @@ class StorageService {
 
     return {
       success: false,
-      error: 'Invalid SLT credentials. Check your email & password (or contact Admin Mr. Kanishka).',
+      error: 'Invalid SLT credentials. Please contact Kanishka IBT or Pranith (0774726136) for password reset.',
     };
   }
 
@@ -4362,6 +4363,11 @@ class StorageService {
       this.setUserOnlineStatus(active.id, false);
     }
     localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+    try {
+      sessionStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+    } catch {
+      // safe fallback
+    }
   }
 
   /**

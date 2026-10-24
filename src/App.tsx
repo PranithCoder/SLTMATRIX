@@ -11,7 +11,8 @@ import {
   AlertCircle, 
   Info,
   X,
-  ArrowRightLeft
+  ArrowRightLeft,
+  LogOut
 } from 'lucide-react';
 
 import { Header } from './components/common/Header';
@@ -34,12 +35,20 @@ import { UserManagementModal } from './components/users/UserManagementModal';
 import { AdminAlertsModal } from './components/alerts/AdminAlertsModal';
 
 import { storageService } from './services/storage';
+import {
+  subscribeToInventory,
+  subscribeToLedger,
+  subscribeToUsers,
+  subscribeToCustomerIssuances,
+  subscribeToTransfers,
+} from './services/firestoreService';
 import { InventoryItem, LedgerTransaction, UserPersona, SubCategoryCode, OpenScannerFn } from './types/inventory';
 
 export type ExtendedNavTab = NavTab | 'collective' | 'transfer';
 
 export const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => storageService.isAuthenticated());
+  // Compulsory authentication on every page reload / refresh
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentTab, setCurrentTab] = useState<ExtendedNavTab>('dashboard');
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [ledger, setLedger] = useState<LedgerTransaction[]>([]);
@@ -98,8 +107,10 @@ export const App: React.FC = () => {
     setUnreadAlertsCount(storageService.getUnreadAlertsCount());
   }, []);
 
-  // Initialize data on mount
+  // Initialize data and clear previous sessions on mount/refresh
   useEffect(() => {
+    storageService.logout();
+    setIsAuthenticated(false);
     refreshData();
 
     // Listen to online/offline network events
@@ -128,6 +139,50 @@ export const App: React.FC = () => {
       window.removeEventListener('offline', handleOffline);
     };
   }, [refreshData, isHighContrast]);
+
+  // Real-time bidirectional Firestore database sync across all operators
+  useEffect(() => {
+    const unsubInventory = subscribeToInventory((liveItems) => {
+      if (liveItems && liveItems.length > 0) {
+        storageService.setLiveInventory(liveItems);
+        setInventory(liveItems);
+      }
+    });
+
+    const unsubLedger = subscribeToLedger((liveTx) => {
+      if (liveTx && liveTx.length > 0) {
+        storageService.setLiveLedger(liveTx);
+        setLedger(liveTx);
+      }
+    });
+
+    const unsubUsers = subscribeToUsers((liveUsers) => {
+      if (liveUsers && liveUsers.length > 0) {
+        storageService.setLiveUsers(liveUsers);
+        setUsersList(liveUsers);
+      }
+    });
+
+    const unsubIssuances = subscribeToCustomerIssuances((liveIssuances) => {
+      if (liveIssuances) {
+        storageService.setLiveCustomerIssuances(liveIssuances);
+      }
+    });
+
+    const unsubTransfers = subscribeToTransfers((liveTransfers) => {
+      if (liveTransfers) {
+        storageService.setLiveTransfers(liveTransfers);
+      }
+    });
+
+    return () => {
+      unsubInventory();
+      unsubLedger();
+      unsubUsers();
+      unsubIssuances();
+      unsubTransfers();
+    };
+  }, []);
 
   // High contrast mode toggle
   const handleToggleHighContrast = () => {
@@ -390,6 +445,16 @@ export const App: React.FC = () => {
             <History size={17} />
             <span>Audit Ledger</span>
           </button>
+
+          {/* Desktop Nav Direct Logout */}
+          <button
+            onClick={handleLogout}
+            className="desktop-nav-btn desktop-nav-logout"
+            title="Sign out of SLT MatriX"
+          >
+            <LogOut size={16} />
+            <span>Logout</span>
+          </button>
         </div>
 
         {/* Dynamic Tab Views */}
@@ -495,6 +560,64 @@ export const App: React.FC = () => {
             onRefresh={refreshData}
           />
         )}
+
+        {/* System Development Credits Footer */}
+        <footer
+          className="slt-app-footer"
+          style={{
+            marginTop: 40,
+            marginBottom: 24,
+            padding: '16px 20px',
+            backgroundColor: '#FFFFFF',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-sm)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            gap: 10,
+            fontSize: '0.82rem',
+            color: 'var(--text-secondary)',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+            <span style={{ color: 'var(--slt-deep-blue)' }}>Developed by</span>
+            <strong style={{ color: 'var(--text-primary)' }}>Pranith S</strong>
+            <a
+              href="tel:0774726136"
+              style={{
+                color: 'var(--slt-deep-blue)',
+                fontWeight: 700,
+                textDecoration: 'none',
+                backgroundColor: 'rgba(0, 86, 179, 0.08)',
+                padding: '3px 8px',
+                borderRadius: 4,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              📞 0774726136
+            </a>
+          </div>
+          <span style={{ color: '#CBD5E1' }}>•</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span
+              style={{
+                color: 'var(--mobitel-lime-dark)',
+                fontWeight: 700,
+                backgroundColor: 'var(--mobitel-lime-light)',
+                padding: '3px 9px',
+                borderRadius: 4,
+                border: '1px solid #C4E9BB',
+              }}
+            >
+              Contact for System Development
+            </span>
+          </div>
+        </footer>
       </main>
 
       {/* Mobile Bottom Navigation */}

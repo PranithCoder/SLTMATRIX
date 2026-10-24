@@ -26,6 +26,7 @@ import {
 import { storageService } from '../../services/storage';
 import { extractSerialNumber } from '../../utils/barcodeParser';
 import confetti from 'canvas-confetti';
+import { SearchableSelect } from '../common/SearchableSelect';
 
 export const SRI_LANKA_DISTRICTS = [
   'Colombo',
@@ -476,23 +477,19 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
               <span>Material / Product to Transfer</span>
               <span style={{ color: 'var(--status-danger)' }}>*</span>
             </label>
-            <select
+            <SearchableSelect
               value={selectedItemId}
-              onChange={(e) => handleItemChange(e.target.value)}
-              className="input-field"
-              style={{ fontWeight: 600 }}
-              required
-            >
-              {categoryItems.length === 0 ? (
-                <option value="">No items available in {subCategory}</option>
-              ) : (
-                categoryItems.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.materialCode} - {item.description} (On-hand: {item.quantity} {item.unit})
-                  </option>
-                ))
-              )}
-            </select>
+              onChange={(val) => handleItemChange(val)}
+              placeholder="Search or select material / product..."
+              searchPlaceholder="Type SKU code, description, or keyword..."
+              options={categoryItems.map((item) => ({
+                value: item.id,
+                label: item.materialCode,
+                subLabel: item.description,
+                badge: `Stock: ${item.quantity} ${item.unit}`,
+                badgeColor: item.quantity > 0 ? '#15803D' : '#DC2626',
+              }))}
+            />
 
             {selectedItem && (
               <div
@@ -631,19 +628,16 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
                 <span>Destination District</span>
                 <span style={{ color: 'var(--status-danger)' }}>*</span>
               </label>
-              <select
+              <SearchableSelect
                 value={destinationDistrict}
-                onChange={(e) => setDestinationDistrict(e.target.value)}
-                className="input-field"
-                style={{ fontWeight: 600 }}
-                required
-              >
-                {SRI_LANKA_DISTRICTS.map((dist) => (
-                  <option key={dist} value={dist}>
-                    {dist} District
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setDestinationDistrict(val)}
+                placeholder="Search destination district..."
+                searchPlaceholder="Search 25 districts (e.g. Colombo, Kandy)..."
+                options={SRI_LANKA_DISTRICTS.map((dist) => ({
+                  value: dist,
+                  label: `${dist} District`,
+                }))}
+              />
             </div>
 
             <div className="input-group">
@@ -679,19 +673,16 @@ export const StockTransferModal: React.FC<StockTransferModalProps> = ({
                   required
                 />
               ) : (
-                <select
+                <SearchableSelect
                   value={destinationBranch}
-                  onChange={(e) => setDestinationBranch(e.target.value)}
-                  className="input-field"
-                  style={{ fontWeight: 600, fontSize: '0.84rem' }}
-                  required
-                >
-                  {SLT_BRANCHES.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setDestinationBranch(val)}
+                  placeholder="Search destination branch..."
+                  searchPlaceholder="Search SLT branch or depot..."
+                  options={SLT_BRANCHES.map((b) => ({
+                    value: b,
+                    label: b,
+                  }))}
+                />
               )}
             </div>
           </div>

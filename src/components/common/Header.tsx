@@ -90,11 +90,11 @@ export const Header: React.FC<HeaderProps> = ({
           {isAdmin && onOpenUserManagement && (
             <button
               onClick={onOpenUserManagement}
-              className="btn btn-outline"
+              className="btn btn-outline header-pill-btn"
               style={{
                 height: 36,
                 minHeight: 36,
-                padding: '0 10px',
+                padding: '0 8px',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: '#0F172A',
                 borderColor: '#334155',
@@ -103,7 +103,8 @@ export const Header: React.FC<HeaderProps> = ({
                 fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 5,
+                flexShrink: 0,
               }}
               title="Team Matrix & Active Online Telemetry (Admin Only)"
             >
@@ -130,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
                 />
               </span>
               <Users size={14} color="#38BDF8" />
-              <span>Team ({onlineUsersCount}/{totalUsersCount})</span>
+              <span><span className="header-btn-label">Team </span>({onlineUsersCount}/{totalUsersCount})</span>
             </button>
           )}
 
@@ -138,11 +139,11 @@ export const Header: React.FC<HeaderProps> = ({
           {isAdmin && onOpenAlerts && (
             <button
               onClick={onOpenAlerts}
-              className="btn btn-outline"
+              className="btn btn-outline header-pill-btn"
               style={{
                 height: 36,
                 minHeight: 36,
-                padding: '0 10px',
+                padding: '0 8px',
                 borderRadius: 'var(--radius-md)',
                 backgroundColor: unreadAlertsCount > 0 ? '#7F1D1D' : '#1E293B',
                 borderColor: unreadAlertsCount > 0 ? '#EF4444' : '#475569',
@@ -151,80 +152,17 @@ export const Header: React.FC<HeaderProps> = ({
                 fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 5,
                 animation: unreadAlertsCount > 0 ? 'pulse 1.8s infinite' : 'none',
+                flexShrink: 0,
               }}
               title="Duplicate Entries & System Security Alerts (Admin Only)"
             >
               <Bell size={14} color={unreadAlertsCount > 0 ? '#FCA5A5' : '#94A3B8'} />
               <span>
-                Alerts {unreadAlertsCount > 0 && `(${unreadAlertsCount})`}
+                <span className="header-btn-label">Alerts </span>{unreadAlertsCount > 0 ? `(${unreadAlertsCount})` : ''}
               </span>
             </button>
-          )}
-
-          {/* User Profile / Switcher */}
-          {isAdmin ? (
-            <div style={{ position: 'relative' }}>
-              <select
-                value={activeUser.id}
-                onChange={(e) => {
-                  const selected = usersList.find((u) => u.id === e.target.value);
-                  if (selected) onSelectUser(selected);
-                }}
-                aria-label="Active Operator Profile"
-                className="header-user-select"
-                style={{
-                  height: 36,
-                  padding: '0 8px',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: '#FFFFFF',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  maxWidth: 140,
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {usersList.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.role === 'ADMIN_IBT' ? '👔 Admin: ' : '🔧 Tech: '} {u.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div
-              style={{
-                height: 36,
-                padding: '0 10px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid #CBD5E1',
-                backgroundColor: '#F8FAFC',
-                color: '#334155',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <span>🔧</span>
-              <span>{activeUser.name}</span>
-              <span
-                style={{
-                  fontSize: '0.68rem',
-                  padding: '1px 5px',
-                  borderRadius: 4,
-                  backgroundColor: '#E2E8F0',
-                  color: '#475569',
-                }}
-              >
-                {activeUser.role === 'FIELD_TECH' ? 'Field Tech' : 'Operator'}
-              </span>
-            </div>
           )}
 
           {/* Connectivity / Offline Simulator Toggle */}
@@ -237,11 +175,12 @@ export const Header: React.FC<HeaderProps> = ({
               height: 34,
               padding: '0 8px',
               transition: 'all 0.15s ease',
+              flexShrink: 0,
             }}
             title={isOffline ? 'Offline Mode Active. Click to simulate reconnect.' : 'Online (Click to simulate field offline mode)'}
           >
             {isOffline ? <WifiOff size={14} /> : <Wifi size={14} />}
-            <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700 }} className="header-btn-label">
               {isOffline ? 'OFFLINE' : 'ONLINE'}
             </span>
           </button>
@@ -257,6 +196,7 @@ export const Header: React.FC<HeaderProps> = ({
                 height: 34,
                 padding: '0 8px',
                 animation: 'pulse 2s infinite',
+                flexShrink: 0,
               }}
               title="Transactions cached locally. Click to sync immediately."
             >
@@ -279,34 +219,84 @@ export const Header: React.FC<HeaderProps> = ({
               borderRadius: 'var(--radius-md)',
               backgroundColor: isHighContrast ? '#000000' : '#FFFFFF',
               color: isHighContrast ? '#FFFFFF' : 'var(--text-secondary)',
+              flexShrink: 0,
             }}
             title={isHighContrast ? 'Disable Outdoor Sunlight Mode' : 'Enable High-Contrast Outdoor Sunlight Mode'}
           >
             <Sun size={17} />
           </button>
 
-          {/* Secure Logout Button */}
-          {onLogout && (
-            <button
-              onClick={onLogout}
-              className="btn btn-outline header-logout-btn"
-              style={{
-                height: 36,
-                minHeight: 36,
-                padding: '0 8px',
-                fontSize: '0.78rem',
-                gap: 4,
-                color: '#DC2626',
-                borderColor: '#FCA5A5',
-                backgroundColor: '#FEF2F2',
-                fontWeight: 700,
-              }}
-              title="Sign out of SLT MatriX"
-            >
-              <LogOut size={15} />
-              <span>Logout</span>
-            </button>
-          )}
+          {/* User Profile & Dedicated Logout Anchor */}
+          <div className="header-user-cluster">
+            {isAdmin ? (
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={activeUser.id}
+                  onChange={(e) => {
+                    const selected = usersList.find((u) => u.id === e.target.value);
+                    if (selected) onSelectUser(selected);
+                  }}
+                  aria-label="Active Operator Profile"
+                  className="header-user-select"
+                  style={{
+                    height: 36,
+                    padding: '0 6px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: '#FFFFFF',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    maxWidth: 125,
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {usersList.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.role === 'ADMIN_IBT' ? '👔 Admin: ' : '🔧 Tech: '} {u.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div
+                style={{
+                  height: 36,
+                  padding: '0 8px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid #CBD5E1',
+                  backgroundColor: '#F8FAFC',
+                  color: '#334155',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  maxWidth: 125,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                <span>🔧</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeUser.name}</span>
+              </div>
+            )}
+
+            {/* Guaranteed-Visible Red Logout Button */}
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="header-logout-btn"
+                title="Sign out of SLT MatriX"
+                aria-label="Logout"
+              >
+                <LogOut size={15} />
+                <span className="header-logout-label">Logout</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </header>
