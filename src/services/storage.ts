@@ -11,14 +11,14 @@ import {
 } from './firestoreService';
 
 const STORAGE_KEYS = {
-  INVENTORY: 'slt_matrix_inventory_v4',
-  LEDGER: 'slt_matrix_ledger_v4',
+  INVENTORY: 'slt_matrix_inventory_v5',
+  LEDGER: 'slt_matrix_ledger_v5',
   OFFLINE_QUEUE: 'slt_matrix_offline_queue_v1',
   ACTIVE_USER: 'slt_matrix_active_user_v1',
   IS_OFFLINE_SIMULATED: 'slt_matrix_offline_simulated',
   HIGH_CONTRAST: 'slt_matrix_high_contrast',
-  CUSTOMER_ISSUANCES: 'slt_matrix_customer_issuances_v1',
-  TRANSFERS: 'slt_matrix_transfers_v2',
+  CUSTOMER_ISSUANCES: 'slt_matrix_customer_issuances_v2',
+  TRANSFERS: 'slt_matrix_transfers_v3',
   AUTH_SESSION: 'slt_matrix_auth_session_v1',
   USERS: 'slt_matrix_users_prod_v1',
   SYSTEM_ALERTS: 'slt_matrix_alerts_v1',
@@ -3114,6 +3114,33 @@ export const INITIAL_CUSTOMER_ISSUANCES: CustomerIssuance[] = [];
 export const INITIAL_TRANSFERS: StockTransfer[] = [];
 
 class StorageService {
+  constructor() {
+    this.runCleanSlateMigration();
+  }
+
+  runCleanSlateMigration(): void {
+    if (typeof window === 'undefined') return;
+    const PURGE_KEY = 'SLT_PURGE_TEST_DATA_2026_PROD_CLEAN_V2';
+    if (!localStorage.getItem(PURGE_KEY)) {
+      localStorage.setItem(PURGE_KEY, 'true');
+      // Wipe old testing storage keys
+      localStorage.removeItem('slt_matrix_inventory_v4');
+      localStorage.removeItem('slt_matrix_ledger_v4');
+      localStorage.removeItem('slt_matrix_customer_issuances_v1');
+      localStorage.removeItem('slt_matrix_transfers_v2');
+      localStorage.removeItem('slt_matrix_offline_queue_v1');
+
+      // Initialize fresh keys with pristine baseline
+      const cleanInventory = INITIAL_INVENTORY.map((item) => ({
+        ...item,
+        serialNumbers: [],
+      }));
+      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(cleanInventory));
+      localStorage.setItem(STORAGE_KEYS.LEDGER, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.CUSTOMER_ISSUANCES, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify([]));
+    }
+  }
   /**
    * Check if online or simulated offline
    */
@@ -3548,7 +3575,7 @@ class StorageService {
     if (typeof window === 'undefined') return INITIAL_CUSTOMER_ISSUANCES;
     const saved = localStorage.getItem(STORAGE_KEYS.CUSTOMER_ISSUANCES);
     const MIGRATION_WIPE_ISSUANCE_SERIALS = 'SLT_PURGE_ISSUANCE_SERIALS_2026_V1';
-    if (!localStorage.getItem(MIGRATION_WIPE_ISSUANCE_SERIALS)) {
+    if (false as boolean) {
       localStorage.setItem(MIGRATION_WIPE_ISSUANCE_SERIALS, 'true');
       const base = saved ? JSON.parse(saved) : INITIAL_CUSTOMER_ISSUANCES;
       const cleaned = base.map((i: any) => ({ ...i, serialNumber: undefined }));

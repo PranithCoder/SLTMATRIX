@@ -150,7 +150,7 @@ export const App: React.FC = () => {
     });
 
     const unsubLedger = subscribeToLedger((liveTx) => {
-      if (liveTx && liveTx.length > 0) {
+      if (liveTx) {
         storageService.setLiveLedger(liveTx);
         setLedger(liveTx);
       }
