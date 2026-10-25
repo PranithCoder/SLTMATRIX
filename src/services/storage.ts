@@ -3647,30 +3647,37 @@ class StorageService {
         localStorage.setItem(MIGRATION_WIPE_DUMMY_SERIALS, 'true');
       }
 
-      // Ledger Stock Reconciliation: Automatically restore stock clobbered by serials length overwrite
-      const RECONCILIATION_FLAG = 'SLT_RECONCILE_STOCK_QTY_2026_V2';
-      if (!localStorage.getItem(RECONCILIATION_FLAG)) {
-        localStorage.setItem(RECONCILIATION_FLAG, 'true');
-        const ledger = this.getLedger();
-        items = items.map((item) => {
-          const itemTxs = ledger.filter(
-            (tx) => tx.materialCode.toUpperCase() === item.materialCode.toUpperCase() && tx.subCategory === item.subCategory
-          );
-          if (itemTxs.length > 0) {
-            const receiveDeltas = itemTxs
-              .filter((tx) => tx.actionType === 'DISPATCH_RECEIVE' && tx.quantityDelta > 0)
-              .reduce((sum, tx) => sum + tx.quantityDelta, 0);
-            const allocateDeltas = itemTxs
-              .filter((tx) => tx.actionType === 'DEVICE_ALLOCATION' || tx.actionType === 'REHAB_CONSUMPTION')
-              .reduce((sum, tx) => sum + Math.abs(tx.quantityDelta), 0);
-            const expectedMin = Math.max(0, receiveDeltas - allocateDeltas);
-            if (expectedMin > item.quantity) {
-              needsSave = true;
-              return { ...item, quantity: expectedMin };
-            }
-          }
-          return item;
-        });
+            // Fresh Database Reset: Delete testing data and restore accurate baseline on-hand details
+      const MIGRATION_FRESH_DB = 'SLT_FRESH_DB_ACCURATE_ONHAND_V3';
+      if (!localStorage.getItem(MIGRATION_FRESH_DB)) {
+        localStorage.setItem(MIGRATION_FRESH_DB, 'true');
+        
+        // 1. Reset inventory to INITIAL_INVENTORY with accurate on-hand stock and empty serials
+        items = INITIAL_INVENTORY.map((item) => ({
+          ...item,
+          serialNumbers: [],
+        }));
+        this.saveInventory(items);
+
+        // 2. Delete test transactions from the ledger (e.g. TX-..., and any test dispatches like CPEDAT004 test)
+        const cleanLedger = INITIAL_LEDGER.map((tx) => ({
+          ...tx,
+          serialNumber: undefined,
+          serialNumbers: undefined,
+        }));
+        this.saveLedger(cleanLedger);
+
+        // 3. Clear testing issuances
+        const cleanIssuances = INITIAL_CUSTOMER_ISSUANCES.map((iss) => ({
+          ...iss,
+          serialNumber: undefined,
+        }));
+        this.saveCustomerIssuances(cleanIssuances);
+
+        // 4. Clear offline queue
+        this.saveOfflineQueue([]);
+
+        return items;
       }
 
       if (needsSave) {
@@ -4477,6 +4484,50 @@ class StorageService {
 
   /**
    * 30-Day Audit Ledger Retention & Auto-Prune
+   */
+  /**
+   * Check records older than N days without downloading or deleting
+   */
+  getLedgerRecordsOlderThan(days: number = 30): LedgerTransaction[] {
+    const ledger = this.getLedger();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffTime = cutoffDate.getTime();
+
+    return ledger.filter((item) => {
+      const itemTime = new Date(item.entryDate || item.timestamp).getTime();
+      return !isNaN(itemTime) && itemTime < cutoffTime;
+    });
+  }
+
+  /**
+   * Reset database back to official fresh baseline with accurate on-hand stock
+   */
+  resetToFreshDatabase(): void {
+    if (typeof window === 'undefined') return;
+    const fresh = INITIAL_INVENTORY.map((item) => ({
+      ...item,
+      serialNumbers: [],
+    }));
+    this.saveInventory(fresh);
+
+    const cleanLedger = INITIAL_LEDGER.map((tx) => ({
+      ...tx,
+      serialNumber: undefined,
+      serialNumbers: undefined,
+    }));
+    this.saveLedger(cleanLedger);
+
+    const cleanIss = INITIAL_CUSTOMER_ISSUANCES.map((iss) => ({
+      ...iss,
+      serialNumber: undefined,
+    }));
+    this.saveCustomerIssuances(cleanIss);
+    this.saveOfflineQueue([]);
+  }
+
+  /**
+   * 30-Day Audit Ledger Retention & Auto-Prune (Only called on explicit user action)
    */
   pruneLedgerOlderThan(days: number = 30): { pruned: LedgerTransaction[]; remaining: LedgerTransaction[] } {
     const ledger = this.getLedger();

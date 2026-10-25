@@ -96,8 +96,12 @@ export const AuditLedgerTable: React.FC<AuditLedgerTableProps> = ({ ledger, onRe
     document.body.removeChild(link);
   };
 
-  // 30-Day Auto-Retention Policy Check on Mount
-  useEffect(() => {
+    // 30-Day Records Check (Notify only - Never auto-download on mount!)
+  const recordsOlderThan30 = useMemo(() => {
+    return storageService.getLedgerRecordsOlderThan(30);
+  }, [ledger]);
+
+  const handleDownload30DayArchive = () => {
     const { pruned } = storageService.pruneLedgerOlderThan(30);
     if (pruned.length > 0) {
       exportTransactionsCSV(
@@ -105,11 +109,14 @@ export const AuditLedgerTable: React.FC<AuditLedgerTableProps> = ({ ledger, onRe
         `SLT_Audit_Archive_Older_Than_30_Days_${new Date().toISOString().slice(0, 10)}.csv`
       );
       setArchiveNotice(
-        `30-Day Auto-Archive Policy Enforced: ${pruned.length} transactions older than 30 days were automatically downloaded to your PC and cleaned from the active database.`
+        `Archived & Downloaded: ${pruned.length} transactions older than 30 days have been downloaded to your PC and cleaned from active ledger.`
       );
       onRefresh();
+    } else {
+      setArchiveNotice('No records are older than 30 days.');
+      setTimeout(() => setArchiveNotice(null), 4000);
     }
-  }, []);
+  };
 
   // Manual Trigger for 30-day prune
   const handleManualArchive30Days = () => {
@@ -184,6 +191,52 @@ export const AuditLedgerTable: React.FC<AuditLedgerTableProps> = ({ ledger, onRe
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* 30-Day Auto Archive Banner */}
+      {recordsOlderThan30.length > 0 && (
+        <div
+          style={{
+            padding: '12px 18px',
+            backgroundColor: '#FEF3C7',
+            border: '1.5px solid #F59E0B',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Archive size={20} color="#D97706" style={{ flexShrink: 0 }} />
+            <div>
+              <div style={{ fontWeight: 800, color: '#92400E', fontSize: '0.88rem' }}>
+                30-Day Audit Retention: {recordsOlderThan30.length} Records Full
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#B45309' }}>
+                Records older than 30 days have accumulated. Click the button to download and archive when you are ready.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleDownload30DayArchive}
+            className="btn btn-primary"
+            style={{
+              fontSize: '0.8rem',
+              padding: '6px 14px',
+              minHeight: 36,
+              gap: 6,
+              backgroundColor: '#D97706',
+              borderColor: '#B45309',
+              fontWeight: 700,
+            }}
+          >
+            <Download size={14} />
+            <span>Download 30-Day Archive ({recordsOlderThan30.length})</span>
+          </button>
+        </div>
+      )}
+
       {archiveNotice && (
         <div
           className="card"
