@@ -19,13 +19,13 @@ import {
   deleteDoc
 } from "firebase/firestore";
 var firebaseConfig = {
-  apiKey: define_import_meta_env_default.VITE_FIREBASE_API_KEY,
-  authDomain: define_import_meta_env_default.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: define_import_meta_env_default.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: define_import_meta_env_default.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: define_import_meta_env_default.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: define_import_meta_env_default.VITE_FIREBASE_APP_ID,
-  measurementId: define_import_meta_env_default.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: define_import_meta_env_default.VITE_FIREBASE_API_KEY || "AIzaSyDVfGttgp9uQogKTDBYzUknokJoXH-NZcs",
+  authDomain: define_import_meta_env_default.VITE_FIREBASE_AUTH_DOMAIN || "slt-matrix.firebaseapp.com",
+  projectId: define_import_meta_env_default.VITE_FIREBASE_PROJECT_ID || "slt-matrix",
+  storageBucket: define_import_meta_env_default.VITE_FIREBASE_STORAGE_BUCKET || "slt-matrix.firebasestorage.app",
+  messagingSenderId: define_import_meta_env_default.VITE_FIREBASE_MESSAGING_SENDER_ID || "596272385139",
+  appId: define_import_meta_env_default.VITE_FIREBASE_APP_ID || "1:596272385139:web:70df813556016361632e06",
+  measurementId: define_import_meta_env_default.VITE_FIREBASE_MEASUREMENT_ID || "G-ZJS6SW6MM5"
 };
 var app = initializeApp(firebaseConfig);
 var analytics = typeof window !== "undefined" ? getAnalytics(app) : null;
@@ -40,13 +40,15 @@ import {
   setDoc as setDoc2,
   getDocs as getDocs2,
   writeBatch,
-  deleteDoc as deleteDoc2
+  deleteDoc as deleteDoc2,
+  onSnapshot
 } from "firebase/firestore";
 var COLLECTIONS = {
   INVENTORY: "inventory",
   LEDGER: "ledger",
   CUSTOMER_ISSUANCES: "customerIssuances",
-  TRANSFERS: "transfers"
+  TRANSFERS: "transfers",
+  USERS: "users"
 };
 var BATCH_SIZE = 400;
 var cleanDoc = (obj) => JSON.parse(JSON.stringify(obj));
@@ -102,6 +104,30 @@ var pushTransfersToFirestore = async (transfers) => {
   }
   console.log(`[Firestore] Pushed ${transfers.length} stock transfers.`);
 };
+var pushUsersToFirestore = async (users) => {
+  if (!users || users.length === 0) return;
+  for (let i = 0; i < users.length; i += BATCH_SIZE) {
+    const chunk = users.slice(i, i + BATCH_SIZE);
+    const batch = writeBatch(db);
+    for (const u of chunk) {
+      const docRef = doc2(db, COLLECTIONS.USERS, u.id);
+      batch.set(docRef, cleanDoc(u), { merge: true });
+    }
+    await batch.commit();
+  }
+};
+var pushSingleUser = async (user) => {
+  const docRef = doc2(db, COLLECTIONS.USERS, user.id);
+  await setDoc2(docRef, cleanDoc(user), { merge: true });
+};
+var deleteSingleUser = async (id) => {
+  const docRef = doc2(db, COLLECTIONS.USERS, id);
+  await deleteDoc2(docRef);
+};
+var fetchUsersFromFirestore = async () => {
+  const snapshot = await getDocs2(collection2(db, COLLECTIONS.USERS));
+  return snapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
+};
 
 // src/services/storage.ts
 var STORAGE_KEYS = {
@@ -113,30 +139,22 @@ var STORAGE_KEYS = {
   HIGH_CONTRAST: "slt_matrix_high_contrast",
   CUSTOMER_ISSUANCES: "slt_matrix_customer_issuances_v1",
   TRANSFERS: "slt_matrix_transfers_v2",
-  AUTH_SESSION: "slt_matrix_auth_session_v1"
-};
-var MOCK_AUTH_CREDENTIALS = {
-  email: "kanishka@slt.lk",
-  password: "slt123",
-  name: "Mr. Kanishka",
-  role: "ADMIN_IBT",
-  title: "IBT Lead & Infrastructure Supervisor",
-  branch: "SLT-MOBITEL Colombo HQ / Regional Ops"
+  AUTH_SESSION: "slt_matrix_auth_session_v1",
+  USERS: "slt_matrix_users_prod_v1",
+  SYSTEM_ALERTS: "slt_matrix_alerts_v1"
 };
 var INITIAL_USERS = [
   {
     id: "USR-KANISHKA",
     name: "Mr. Kanishka",
+    email: "kanishka@slt.lk",
+    password: "kanishka@123",
     role: "ADMIN_IBT",
     title: "IBT Lead & Infrastructure Supervisor",
-    branch: "SLT-MOBITEL Colombo HQ / Regional Ops"
-  },
-  {
-    id: "USR-SUNIL",
-    name: "Sunil P. (Field Tech)",
-    role: "FIELD_TECH",
-    title: "Senior Field Telecom Technician",
-    branch: "Metro OSP Field Unit 04"
+    branch: "SLT-MOBITEL Colombo HQ / Regional Ops",
+    isOnline: true,
+    lastActive: "Just now",
+    createdDate: "2025-01-01"
   }
 ];
 var INITIAL_INVENTORY = [
@@ -153,7 +171,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-RTR-FH180-01"],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-RTR-01"
@@ -169,7 +187,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-RTR-PL1140-01", "SLT-RTR-PL1140-02", "SLT-RTR-PL1140-03"],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-RTR-02"
@@ -185,7 +203,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 11 }, (_, i) => `SLT-RTR-TP8951-${(i + 1).toString().padStart(2, "0")}`),
+    serialNumbers: [],
     minThreshold: 2,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-RTR-03"
@@ -201,7 +219,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-AP-ARUBA303-01"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-ENT-01"
@@ -247,7 +265,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-CISCO-1121X-01", "SLT-CISCO-1121X-02", "SLT-CISCO-1121X-03", "SLT-CISCO-1121X-04"],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-ENT-02"
@@ -263,7 +281,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-CISCO-891F-01"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-ENT-03"
@@ -339,7 +357,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-SHDSL-1424-01", "SLT-SHDSL-1424-02"],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-DSL-01"
@@ -355,7 +373,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-SHDSL-1432-01"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-DSL-02"
@@ -506,7 +524,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-FG40F-01", "SLT-FG40F-02", "SLT-FG40F-03", "SLT-FG40F-04", "SLT-FG40F-05", "SLT-FG40F-06", "SLT-FG40F-07"],
+    serialNumbers: [],
     minThreshold: 2,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-SEC-01"
@@ -522,7 +540,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-FG60F-01"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-SEC-02"
@@ -538,7 +556,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 47 }, (_, i) => `SLT-ONT-TD64-A${(i + 1).toString().padStart(2, "0")}`),
+    serialNumbers: [],
     minThreshold: 10,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-ONT-01"
@@ -554,7 +572,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 72 }, (_, i) => `SLT-ONT-TD64-B${(i + 1).toString().padStart(2, "0")}`),
+    serialNumbers: [],
     minThreshold: 15,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-ONT-02"
@@ -570,7 +588,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-ONT-CD65-01"],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-ONT-03"
@@ -586,7 +604,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-ONT-CD65-02", "SLT-ONT-CD65-03", "SLT-ONT-CD65-04", "SLT-ONT-CD65-05"],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-ONT-04"
@@ -647,7 +665,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-IAD4-01", "SLT-IAD4-02"],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-VOIP-01"
@@ -663,7 +681,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-IAD8-01"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-VOIP-02"
@@ -679,7 +697,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-IPP-GS2602-01"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-VOIP-03"
@@ -695,7 +713,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-IPP-GS1782-01", "SLT-IPP-GS1782-02", "SLT-IPP-GS1782-03"],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-VOIP-04"
@@ -711,7 +729,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-CISCO-ISR11-01", "SLT-CISCO-ISR11-02", "SLT-CISCO-ISR11-03"],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-ENT-04"
@@ -727,7 +745,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-CISCO-ISR11-04"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-ENT-05"
@@ -863,7 +881,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 30 }, (_, i) => `SLT-STB-SEI31-${(i + 1).toString().padStart(2, "0")}`),
+    serialNumbers: [],
     minThreshold: 5,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-STB-01"
@@ -969,7 +987,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 12 }, (_, i) => `SLT-TEL-PAN500-${(i + 1).toString().padStart(2, "0")}`),
+    serialNumbers: [],
     minThreshold: 2,
     lastUpdated: "2026-06-07",
     binLocation: "NC-BIN-TEL-01"
@@ -1032,7 +1050,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-RET-SHDSL-01", "SLT-RET-SHDSL-02", "SLT-RET-SHDSL-03"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-SHDSL"
@@ -1048,7 +1066,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-RET-HW55-01", "SLT-RET-HW55-02", "SLT-RET-HW55-03", "SLT-RET-HW55-04", "SLT-RET-HW55-05", "SLT-RET-HW55-06"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-HW55"
@@ -1094,7 +1112,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 45 }, (_, idx) => `SLT-RET-HW45-${(idx + 1).toString().padStart(3, "0")}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-HW45"
@@ -1125,7 +1143,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 8 }, (_, idx) => `SLT-RET-CD68-${(idx + 1).toString().padStart(2, "0")}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-CD68"
@@ -1171,7 +1189,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 6 }, (_, idx) => `SLT-RET-HW28-${(idx + 1).toString().padStart(2, "0")}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-HW28"
@@ -1187,7 +1205,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-RET-HW15-01"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-HW15"
@@ -1203,7 +1221,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-RET-LTE08-01"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-LTE"
@@ -1234,7 +1252,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 6 }, (_, idx) => `SLT-RET-HC27-${(idx + 1).toString().padStart(2, "0")}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-STB"
@@ -1325,7 +1343,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 21 }, (_, idx) => `SLT-RET-HC30-${(idx + 1).toString().padStart(2, "0")}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-STB"
@@ -1341,7 +1359,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 12 }, (_, idx) => `SLT-RET-NG01-${(idx + 1).toString().padStart(2, "0")}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-STB"
@@ -1357,7 +1375,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 18 }, (_, idx) => `SLT-RET-NG08-${(idx + 1).toString().padStart(2, "0")}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-STB"
@@ -1373,7 +1391,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-RET-SEI32-01"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-STB-01"
@@ -1389,7 +1407,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: Array.from({ length: 37 }, (_, idx) => `SLT-RET-SEI32-B${(idx + 1).toString().padStart(2, "0")}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:30",
     binLocation: "RET-BAY-STB-02"
@@ -1497,7 +1515,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-COL-HW55-001"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:00",
     binLocation: "COL-STK-01"
@@ -1543,7 +1561,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-COL-TD64-001"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:00",
     binLocation: "COL-STK-01"
@@ -1559,7 +1577,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-COL-CD68-001"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:00",
     binLocation: "COL-STK-02"
@@ -1605,7 +1623,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-COL-HW15-001"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:00",
     binLocation: "COL-STK-02"
@@ -1636,7 +1654,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-COL-STB23-001"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:00",
     binLocation: "COL-STB-01"
@@ -1652,7 +1670,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-COL-STB31-001", "SLT-COL-STB31-002"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:00",
     binLocation: "COL-STB-01"
@@ -1728,7 +1746,7 @@ var INITIAL_INVENTORY = [
     inbound: 0,
     unit: "UNITS",
     isSerialized: true,
-    serialNumbers: ["SLT-COL-STB32-001"],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: "2025-01-04 12:00",
     binLocation: "COL-STB-01"
@@ -3193,310 +3211,9 @@ var INITIAL_INVENTORY = [
     binLocation: "USB-TC-OPCD--"
   }
 ];
-var INITIAL_LEDGER = [
-  {
-    id: "tx-1001",
-    timestamp: "2025-01-04 08:30:12",
-    userId: "USR-KANISHKA",
-    userName: "Mr. Kanishka",
-    actionType: "DISPATCH_RECEIVE",
-    mainCategory: "Rehabilitation",
-    subCategory: "TC-OPCDR",
-    materialCode: "OSPFIT002",
-    materialDescription: "AERIAL CABLE FITTING - SHARP ANGLED",
-    quantityDelta: 100,
-    unit: "PCS",
-    locatorId: "TC-01-REH-250104-999",
-    notes: "Main Branch dispatch received at Colombo South depot via batch locator decode.",
-    syncStatus: "SYNCED"
-  },
-  {
-    id: "tx-1002",
-    timestamp: "2025-01-04 09:15:40",
-    userId: "USR-SUNIL",
-    userName: "Sunil P. (Field Tech)",
-    actionType: "DEVICE_ALLOCATION",
-    mainCategory: "New Connection",
-    subCategory: "TCOPNC",
-    materialCode: "ONT-HW-EG8145V5",
-    materialDescription: "HUAWEI FIBER ONT GPON DUAL-BAND WI-FI",
-    quantityDelta: -1,
-    unit: "UNITS",
-    serialNumber: "SLT-ONT-98200",
-    accountNo: "0112458990",
-    customerName: "K. D. Gunaratne",
-    notes: "FTTH High-Speed Fiber activation completed with optical dBm test passed.",
-    syncStatus: "SYNCED"
-  },
-  {
-    id: "tx-1003",
-    timestamp: "2025-01-04 10:45:19",
-    userId: "USR-SUNIL",
-    userName: "Sunil P. (Field Tech)",
-    actionType: "REHAB_CONSUMPTION",
-    mainCategory: "Rehabilitation",
-    subCategory: "TC-OPCDR",
-    materialCode: "OSPFIT002",
-    materialDescription: "AERIAL CABLE FITTING - SHARP ANGLED",
-    quantityDelta: -12,
-    unit: "PCS",
-    workOrderNo: "WO-2025-08129",
-    notes: "Rehabilitation of trunk aerial span between Pole #41 and #48.",
-    syncStatus: "SYNCED"
-  },
-  {
-    id: "tx-1004",
-    timestamp: "2025-01-04 11:20:00",
-    userId: "USR-SUNIL",
-    userName: "Sunil P. (Field Tech)",
-    actionType: "CUSTOMER_RETURN",
-    mainCategory: "New Connection",
-    subCategory: "TCOPNC-R",
-    materialCode: "ONT-HW-EG8145V5",
-    materialDescription: "HUAWEI FIBER ONT (CUSTOMER RETURNED)",
-    quantityDelta: 1,
-    unit: "UNITS",
-    serialNumber: "SLT-ONT-RET-111",
-    accountNo: "0112789123",
-    customerName: "A. R. M. Nazeer",
-    reasonCode: "Service Churn / Relocation",
-    itemCondition: "GOOD_REUSABLE",
-    notes: "Segregated into customer return holding bay.",
-    syncStatus: "SYNCED"
-  },
-  {
-    id: "tx-1010",
-    timestamp: "2026-06-05 08:30:00",
-    entryDate: "2026-06-05",
-    userId: "USR-KANISHKA",
-    userName: "Mr. Kanishka",
-    actionType: "DISPATCH_RECEIVE",
-    mainCategory: "New Connection",
-    subCategory: "TCOPNC",
-    materialCode: "CPERTR042",
-    materialDescription: "ADSL ROUTER 4-PORT (WI-FI) - FIBERHOME HG-180 (DOT LOGO)",
-    quantityDelta: 25,
-    unit: "UNITS",
-    locatorId: "NC-BIN-RTR-01-260605",
-    notes: "Main Logistics Central Hub Colombo - Batch RTR-26-05",
-    syncStatus: "SYNCED"
-  },
-  {
-    id: "tx-1011",
-    timestamp: "2026-06-08 10:15:00",
-    entryDate: "2026-06-08",
-    userId: "USR-KANISHKA",
-    userName: "Mr. Kanishka",
-    actionType: "DISPATCH_RECEIVE",
-    mainCategory: "Rehabilitation",
-    subCategory: "TC-OPCDR",
-    materialCode: "OSPFIT002",
-    materialDescription: "AERIAL CABLE FITTING - SHARP ANGLED",
-    quantityDelta: 150,
-    unit: "PCS",
-    locatorId: "TC-01-REH-260608-881",
-    notes: "Container 08 Delivery from Welikada Central Depot",
-    syncStatus: "SYNCED"
-  },
-  {
-    id: "tx-1012",
-    timestamp: "2026-06-12 14:20:00",
-    entryDate: "2026-06-12",
-    userId: "USR-SUNIL",
-    userName: "Sunil P. (Field Tech)",
-    actionType: "DISPATCH_RECEIVE",
-    mainCategory: "New Connection",
-    subCategory: "TCOPNC",
-    materialCode: "CPEFTH064S",
-    materialDescription: "GPON ONT (4FE+2TEL+WIFI) - HUAWEI HG8245H",
-    quantityDelta: 40,
-    unit: "UNITS",
-    serialNumber: "SLT-ONT-8245H-BATCH-01",
-    locatorId: "NC-BIN-ONT-260612",
-    notes: "Inbound dispatch batch of Huawei ONTs verified with test power on.",
-    syncStatus: "SYNCED"
-  },
-  {
-    id: "tx-1013",
-    timestamp: "2026-06-15 09:00:00",
-    entryDate: "2026-06-15",
-    userId: "USR-KANISHKA",
-    userName: "Mr. Kanishka",
-    actionType: "DISPATCH_RECEIVE",
-    mainCategory: "Rehabilitation",
-    subCategory: "TC-OPCDR",
-    materialCode: "CABFTH001",
-    materialDescription: "OPTICAL FIBER CABLE 48F SM AERIAL",
-    quantityDelta: 500,
-    unit: "METERS",
-    locatorId: "TC-01-CDR-260615-302",
-    notes: "Rehab Trunk cable spool received for Colombo-Kandy road project.",
-    syncStatus: "SYNCED"
-  }
-];
-var INITIAL_CUSTOMER_ISSUANCES = [
-  {
-    id: "ISS-20260602-001",
-    issueDate: "2026-06-02",
-    timestamp: "2026-06-02 10:15:00",
-    materialCode: "CPERTR042",
-    materialDescription: "ADSL ROUTER 4-PORT (WI-FI) - FIBERHOME HG-180 (DOT LOGO)",
-    serialNumber: "SLT-RTR-FH180-8812",
-    isSerialized: true,
-    quantity: 1,
-    unit: "UNITS",
-    accountNo: "0112789456",
-    customerName: "R. M. Bandara",
-    customerContact: "0714589210",
-    customerAddress: "No. 42/B, Peradeniya Rd, Kandy",
-    issuedBy: "Sunil P. (Field Tech)",
-    notes: "Fiber drop installation completed. Wi-Fi verified 50Mbps.",
-    status: "ACTIVE"
-  },
-  {
-    id: "ISS-20260604-002",
-    issueDate: "2026-06-04",
-    timestamp: "2026-06-04 14:30:00",
-    materialCode: "CPEFTH064S",
-    materialDescription: "GPON ONT (4FE+2TEL+WIFI) - HUAWEI HG8245H",
-    serialNumber: "SLT-ONT-8245H-9921",
-    isSerialized: true,
-    quantity: 1,
-    unit: "UNITS",
-    accountNo: "0112998314",
-    customerName: "Nimal Jayasuriya",
-    customerContact: "0773124590",
-    customerAddress: "18 Havelock Rd, Colombo 05",
-    issuedBy: "Mr. Kanishka",
-    notes: "ONT authenticated to OLT Port 02/01",
-    status: "ACTIVE"
-  },
-  {
-    id: "ISS-20260605-003",
-    issueDate: "2026-06-05",
-    timestamp: "2026-06-05 09:45:00",
-    materialCode: "CPESTB031V",
-    materialDescription: "IPTV SET-TOP-BOX (4K) - PEO TV V3",
-    serialNumber: "SLT-STB-PEO4K-3341",
-    isSerialized: true,
-    quantity: 1,
-    unit: "UNITS",
-    accountNo: "0112445123",
-    customerName: "Kavindu Senanayake",
-    customerContact: "0702154879",
-    customerAddress: "75 Temple Rd, Maharagama",
-    issuedBy: "Sunil P. (Field Tech)",
-    notes: "Direct customer premises return due to package downgrade.",
-    status: "RETURNED_DIRECT",
-    returnDate: "2026-06-12",
-    returnType: "TCOPNC-C",
-    returnCondition: "GOOD_REUSABLE",
-    returnNotes: "Returned directly to depot by customer. Device tested OK and credited to Collective stock.",
-    returnedBy: "Sunil P. (Field Tech)"
-  },
-  {
-    id: "ISS-20260528-004",
-    issueDate: "2026-05-28",
-    timestamp: "2026-05-28 16:20:00",
-    materialCode: "CPERTR045S",
-    materialDescription: "ROUTER 4-PORT (WI-FI) - ZTE F670L DUAL BAND",
-    serialNumber: "SLT-ZTE-F670L-5520",
-    isSerialized: true,
-    quantity: 1,
-    unit: "UNITS",
-    accountNo: "0112887612",
-    customerName: "Anura Gunawardena",
-    customerContact: "0729988114",
-    customerAddress: "89 Galle Rd, Dehiwala",
-    issuedBy: "Mr. Kanishka",
-    notes: "Surge damaged unit replaced and sent to repair.",
-    status: "RETURNED_WORKSHOP",
-    returnDate: "2026-06-14",
-    returnType: "TCOPNC-R",
-    returnCondition: "FAULTY_REPAIR",
-    returnNotes: "Refurbished at central workshop and returned back to depot stock.",
-    returnedBy: "Mr. Kanishka"
-  },
-  {
-    id: "ISS-20260608-005",
-    issueDate: "2026-06-08",
-    timestamp: "2026-06-08 11:10:00",
-    materialCode: "CABFTH038",
-    materialDescription: "FIBER DROP CABLE 1-CORE G657A2 (BOW-TYPE)",
-    serialNumber: void 0,
-    isSerialized: false,
-    quantity: 85,
-    unit: "METERS",
-    accountNo: "0112789456",
-    customerName: "R. M. Bandara",
-    customerContact: "0714589210",
-    customerAddress: "No. 42/B, Peradeniya Rd, Kandy",
-    issuedBy: "Sunil P. (Field Tech)",
-    notes: "Drop cable aerial span from DP-KND-09 to customer premise.",
-    status: "ACTIVE"
-  }
-];
-var INITIAL_TRANSFERS = [
-  {
-    id: "TR-2026-001",
-    moveOrderNo: "MO-2026-0812",
-    transferDate: "2026-06-15",
-    timestamp: "2026-06-15 11:30:00",
-    subCategory: "TCOPNC",
-    mainCategory: "New Connection",
-    materialCode: "CPERTR045S",
-    materialDescription: "ADSL ROUTER 4-PORT (WI-FI) - PROLINK PRS1140 (DOT LOGO)",
-    quantity: 2,
-    unit: "UNITS",
-    isSerialized: true,
-    serialNumbers: ["SLT-RTR-PL1140-01", "SLT-RTR-PL1140-02"],
-    destinationDistrict: "Kandy",
-    destinationBranch: "SLT Regional Telecom Office - Kandy Peradeniya Rd",
-    dispatchOfficer: "Mr. Kanishka",
-    carrierVehicle: "WP-CAD-8812 (SLT Fleet Van)",
-    notes: "Urgent stock balancing for fiber rollout in Kandy Central.",
-    status: "DELIVERED"
-  },
-  {
-    id: "TR-2026-002",
-    moveOrderNo: "MO-2026-0824",
-    transferDate: "2026-06-18",
-    timestamp: "2026-06-18 14:15:00",
-    subCategory: "TCOPNC-C",
-    mainCategory: "New Connection",
-    materialCode: "CPEFTH055S",
-    materialDescription: "ECHOLIFE HG8145V5 ONT BASE UNIT (HUAWEI) (CUSTOMER COLLECTIVE)",
-    quantity: 5,
-    unit: "UNITS",
-    isSerialized: true,
-    serialNumbers: ["SLT-ONT-HW8145-COL-01", "SLT-ONT-HW8145-COL-02"],
-    destinationDistrict: "Galle",
-    destinationBranch: "SLT Regional Telecom Center - Galle",
-    dispatchOfficer: "Sunil P. (Field Tech)",
-    carrierVehicle: "WP-CB-4490 (Courier Logistics)",
-    notes: "Transfer of tested customer collected units for churn redeployment.",
-    status: "IN_TRANSIT"
-  },
-  {
-    id: "TR-2026-003",
-    moveOrderNo: "MO-2026-0899",
-    transferDate: "2026-06-20",
-    timestamp: "2026-06-20 09:40:00",
-    subCategory: "TC-OPCDR",
-    mainCategory: "Rehabilitation",
-    materialCode: "CABFTH001",
-    materialDescription: "OPTICAL FIBER CABLE 48F SM AERIAL",
-    quantity: 350,
-    unit: "METERS",
-    isSerialized: false,
-    destinationDistrict: "Kurunegala",
-    destinationBranch: "SLT Central Depot - Kurunegala",
-    dispatchOfficer: "Mr. Kanishka",
-    carrierVehicle: "CP-LH-1204 (Heavy Transport)",
-    notes: "Rehab restoration cable dispatched as per Move Order allocation.",
-    status: "DISPATCHED"
-  }
-];
+var INITIAL_LEDGER = [];
+var INITIAL_CUSTOMER_ISSUANCES = [];
+var INITIAL_TRANSFERS = [];
 var StorageService = class {
   /**
    * Check if online or simulated offline
@@ -3532,6 +3249,117 @@ var StorageService = class {
   setActiveUser(user) {
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(user));
+  }
+  getUsers() {
+    if (typeof window === "undefined") return INITIAL_USERS;
+    const saved = localStorage.getItem(STORAGE_KEYS.USERS);
+    if (!saved) {
+      this.saveUsers(INITIAL_USERS);
+      return INITIAL_USERS;
+    }
+    try {
+      const users = JSON.parse(saved);
+      if (!users.some((u) => u.role === "ADMIN_IBT")) {
+        const merged = [INITIAL_USERS[0], ...users.filter((u) => u.id !== "USR-KANISHKA")];
+        this.saveUsers(merged);
+        return merged;
+      }
+      return users;
+    } catch {
+      return INITIAL_USERS;
+    }
+  }
+  saveUsers(users) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    pushUsersToFirestore(users).catch(
+      (err) => console.warn("[Firestore] Users sync failed:", err)
+    );
+  }
+  addUser(user) {
+    const users = this.getUsers();
+    const id = `USR-${Date.now().toString(36).toUpperCase()}`;
+    const newUser = {
+      ...user,
+      id,
+      isOnline: false,
+      lastActive: "Never",
+      createdDate: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]
+    };
+    users.push(newUser);
+    this.saveUsers(users);
+    pushSingleUser(newUser).catch(
+      (err) => console.warn("[Firestore] pushSingleUser failed:", err)
+    );
+    return newUser;
+  }
+  updateUser(updated) {
+    const users = this.getUsers().map((u) => u.id === updated.id ? updated : u);
+    this.saveUsers(users);
+    pushSingleUser(updated).catch(
+      (err) => console.warn("[Firestore] pushSingleUser failed:", err)
+    );
+    const active = this.getActiveUser();
+    if (active.id === updated.id) {
+      this.setActiveUser(updated);
+    }
+  }
+  deleteUser(id) {
+    const users = this.getUsers();
+    const target = users.find((u) => u.id === id);
+    if (target?.role === "ADMIN_IBT" || target?.id === "USR-KANISHKA") {
+      return false;
+    }
+    const filtered = users.filter((u) => u.id !== id);
+    this.saveUsers(filtered);
+    deleteSingleUser(id).catch(
+      (err) => console.warn("[Firestore] deleteSingleUser failed:", err)
+    );
+    return true;
+  }
+  /**
+   * Real-Time Stream Inbound Setters (Updates local cache without re-triggering outgoing pushes)
+   */
+  setLiveInventory(items) {
+    if (typeof window === "undefined" || !items || items.length === 0) return;
+    localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(items));
+  }
+  setLiveLedger(txs) {
+    if (typeof window === "undefined" || !txs) return;
+    localStorage.setItem(STORAGE_KEYS.LEDGER, JSON.stringify(txs));
+  }
+  setLiveUsers(users) {
+    if (typeof window === "undefined" || !users || users.length === 0) return;
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  }
+  setLiveCustomerIssuances(issuances) {
+    if (typeof window === "undefined" || !issuances) return;
+    localStorage.setItem(STORAGE_KEYS.CUSTOMER_ISSUANCES, JSON.stringify(issuances));
+  }
+  setLiveTransfers(transfers) {
+    if (typeof window === "undefined" || !transfers) return;
+    localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify(transfers));
+  }
+  setUserOnlineStatus(userId, isOnline) {
+    const users = this.getUsers().map((u) => {
+      if (u.id === userId) {
+        return {
+          ...u,
+          isOnline,
+          lastActive: isOnline ? "Just now" : (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        };
+      }
+      return u;
+    });
+    this.saveUsers(users);
+    const active = this.getActiveUser();
+    if (active.id === userId) {
+      this.setActiveUser({
+        ...active,
+        isOnline,
+        lastActive: isOnline ? "Just now" : (/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      });
+    }
   }
   getInventory() {
     if (typeof window === "undefined") return INITIAL_INVENTORY;
@@ -3577,6 +3405,29 @@ var StorageService = class {
         const ncItems = INITIAL_INVENTORY.filter((i) => i.subCategory === "TCOPNC");
         items = [...withoutOldNc, ...ncItems];
         needsSave = true;
+      }
+      const MIGRATION_WIPE_DUMMY_SERIALS = "SLT_PURGE_DUMMY_SERIALS_2026_V1";
+      if (!localStorage.getItem(MIGRATION_WIPE_DUMMY_SERIALS)) {
+        items = items.map((item) => ({
+          ...item,
+          serialNumbers: []
+        }));
+        needsSave = true;
+        localStorage.setItem(MIGRATION_WIPE_DUMMY_SERIALS, "true");
+      }
+      const MIGRATION_CLEAN_SLATE_PROD = "SLT_CLEAN_SLATE_PROD_OCT2026_FINAL";
+      if (!localStorage.getItem(MIGRATION_CLEAN_SLATE_PROD)) {
+        localStorage.setItem(MIGRATION_CLEAN_SLATE_PROD, "true");
+        items = INITIAL_INVENTORY.map((item) => ({
+          ...item,
+          serialNumbers: []
+        }));
+        this.saveInventory(items);
+        this.saveLedger([]);
+        this.saveCustomerIssuances([]);
+        localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify([]));
+        this.saveOfflineQueue([]);
+        return items;
       }
       if (needsSave) {
         this.saveInventory(items);
@@ -3667,18 +3518,25 @@ var StorageService = class {
       const item = { ...inventory[itemIndex] };
       item.quantity = Math.max(0, item.quantity + tx.quantityDelta);
       item.lastUpdated = timestamp.slice(0, 16);
-      if (item.isSerialized && tx.serialNumber) {
+      const incomingSerials = tx.serialNumbers && tx.serialNumbers.length > 0 ? tx.serialNumbers : tx.serialNumber && !tx.serialNumber.includes("Devices (Batch Intake)") ? [tx.serialNumber] : [];
+      if (incomingSerials.length > 0 || item.isSerialized) {
+        if (incomingSerials.length > 0) {
+          item.isSerialized = true;
+        }
         const serials = item.serialNumbers ? [...item.serialNumbers] : [];
         if (tx.quantityDelta < 0) {
-          const sIdx = serials.indexOf(tx.serialNumber);
-          if (sIdx >= 0) serials.splice(sIdx, 1);
+          incomingSerials.forEach((sn) => {
+            const sIdx = serials.indexOf(sn);
+            if (sIdx >= 0) serials.splice(sIdx, 1);
+          });
         } else if (tx.quantityDelta > 0) {
-          if (!serials.includes(tx.serialNumber)) {
-            serials.push(tx.serialNumber);
-          }
+          incomingSerials.forEach((sn) => {
+            if (!serials.includes(sn)) {
+              serials.push(sn);
+            }
+          });
         }
         item.serialNumbers = serials;
-        item.quantity = serials.length;
       }
       inventory[itemIndex] = item;
     } else if (tx.quantityDelta > 0) {
@@ -3691,7 +3549,7 @@ var StorageService = class {
         quantity: tx.quantityDelta,
         unit: tx.unit || "PCS",
         isSerialized: Boolean(tx.serialNumber),
-        serialNumbers: tx.serialNumber ? [tx.serialNumber] : void 0,
+        serialNumbers: [],
         minThreshold: 5,
         lastUpdated: timestamp.slice(0, 16),
         binLocation: tx.locatorId || "DEFAULT-BIN"
@@ -3715,6 +3573,14 @@ var StorageService = class {
   getCustomerIssuances() {
     if (typeof window === "undefined") return INITIAL_CUSTOMER_ISSUANCES;
     const saved = localStorage.getItem(STORAGE_KEYS.CUSTOMER_ISSUANCES);
+    const MIGRATION_WIPE_ISSUANCE_SERIALS = "SLT_PURGE_ISSUANCE_SERIALS_2026_V1";
+    if (!localStorage.getItem(MIGRATION_WIPE_ISSUANCE_SERIALS)) {
+      localStorage.setItem(MIGRATION_WIPE_ISSUANCE_SERIALS, "true");
+      const base = saved ? JSON.parse(saved) : INITIAL_CUSTOMER_ISSUANCES;
+      const cleaned = base.map((i) => ({ ...i, serialNumber: void 0 }));
+      this.saveCustomerIssuances(cleaned);
+      return cleaned;
+    }
     if (!saved) {
       this.saveCustomerIssuances(INITIAL_CUSTOMER_ISSUANCES);
       return INITIAL_CUSTOMER_ISSUANCES;
@@ -3882,9 +3748,6 @@ var StorageService = class {
       materialCode: (updates.materialCode || oldItem.materialCode).toUpperCase().trim(),
       lastUpdated: today
     };
-    if (updatedItem.isSerialized && updatedItem.serialNumbers && updatedItem.serialNumbers.length > 0) {
-      updatedItem.quantity = updatedItem.serialNumbers.length;
-    }
     inventory[idx] = updatedItem;
     this.saveInventory(inventory);
     const delta = (updatedItem.quantity ?? oldQty) - oldQty;
@@ -4013,7 +3876,6 @@ var StorageService = class {
     if (item.isSerialized && serialNumbers.length > 0) {
       const serialSet = new Set(serialNumbers);
       item.serialNumbers = (item.serialNumbers || []).filter((s) => !serialSet.has(s));
-      item.quantity = item.serialNumbers.length;
     }
     inventory[itemIndex] = item;
     this.saveInventory(inventory);
@@ -4108,29 +3970,158 @@ var StorageService = class {
     }
   }
   isAuthenticated() {
-    return this.getAuthSession() !== null;
+    return false;
   }
-  login(email, password) {
+  async login(email, password) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = password.trim();
-    if (cleanEmail === MOCK_AUTH_CREDENTIALS.email.toLowerCase() && cleanPass === MOCK_AUTH_CREDENTIALS.password) {
+    let users = this.getUsers();
+    let found = users.find(
+      (u) => u.email.toLowerCase() === cleanEmail && (u.password || "tech123") === cleanPass
+    );
+    if (!found) {
+      try {
+        const remoteUsers = await fetchUsersFromFirestore();
+        if (remoteUsers && remoteUsers.length > 0) {
+          this.setLiveUsers(remoteUsers);
+          users = remoteUsers;
+          found = users.find(
+            (u) => u.email.toLowerCase() === cleanEmail && (u.password || "tech123") === cleanPass
+          );
+        }
+      } catch (err) {
+        console.warn("[Firestore] Remote user verification error:", err);
+      }
+    }
+    if (found) {
+      this.setUserOnlineStatus(found.id, true);
+      const updatedUser = { ...found, isOnline: true, lastActive: "Just now" };
       const session = {
         email: cleanEmail,
-        name: MOCK_AUTH_CREDENTIALS.name,
+        name: found.name,
+        role: found.role,
+        userId: found.id,
         loggedInAt: (/* @__PURE__ */ new Date()).toISOString()
       };
       localStorage.setItem(STORAGE_KEYS.AUTH_SESSION, JSON.stringify(session));
-      const user = INITIAL_USERS.find((u) => u.id === "USR-KANISHKA") || INITIAL_USERS[0];
-      this.setActiveUser(user);
-      return { success: true, user };
+      this.setActiveUser(updatedUser);
+      return { success: true, user: updatedUser };
     }
     return {
       success: false,
-      error: "Invalid SLT credentials. Please use kanishka@slt.lk and password slt123."
+      error: "Invalid SLT credentials. Please contact Kanishka IBT or Pranith (0774726136) for password reset."
     };
   }
   logout() {
+    const active = this.getActiveUser();
+    if (active && active.id) {
+      this.setUserOnlineStatus(active.id, false);
+    }
     localStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+    try {
+      sessionStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+    } catch {
+    }
+  }
+  /**
+   * System Duplicate & Security Alerts
+   */
+  getSystemAlerts() {
+    if (typeof window === "undefined") return [];
+    const saved = localStorage.getItem(STORAGE_KEYS.SYSTEM_ALERTS);
+    if (!saved) return [];
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return [];
+    }
+  }
+  saveSystemAlerts(alerts) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.SYSTEM_ALERTS, JSON.stringify(alerts));
+  }
+  addSystemAlert(alert) {
+    const alerts = this.getSystemAlerts();
+    const newAlert = {
+      ...alert,
+      id: `ALT-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      resolved: false
+    };
+    alerts.unshift(newAlert);
+    this.saveSystemAlerts(alerts);
+    return newAlert;
+  }
+  resolveSystemAlert(alertId, resolvedBy) {
+    const alerts = this.getSystemAlerts().map((a) => {
+      if (a.id === alertId) {
+        return {
+          ...a,
+          resolved: true,
+          resolvedAt: (/* @__PURE__ */ new Date()).toISOString(),
+          resolvedBy
+        };
+      }
+      return a;
+    });
+    this.saveSystemAlerts(alerts);
+  }
+  getUnreadAlertsCount() {
+    return this.getSystemAlerts().filter((a) => !a.resolved).length;
+  }
+  /**
+   * 30-Day Audit Ledger Retention & Auto-Prune
+   */
+  /**
+   * Check records older than N days without downloading or deleting
+   */
+  getLedgerRecordsOlderThan(days = 30) {
+    const ledger = this.getLedger();
+    const cutoffDate = /* @__PURE__ */ new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffTime = cutoffDate.getTime();
+    return ledger.filter((item) => {
+      const itemTime = new Date(item.entryDate || item.timestamp).getTime();
+      return !isNaN(itemTime) && itemTime < cutoffTime;
+    });
+  }
+  /**
+   * Reset database back to official fresh baseline with accurate on-hand stock
+   */
+  resetToFreshDatabase() {
+    if (typeof window === "undefined") return;
+    const fresh = INITIAL_INVENTORY.map((item) => ({
+      ...item,
+      serialNumbers: []
+    }));
+    this.saveInventory(fresh);
+    this.saveLedger([]);
+    this.saveCustomerIssuances([]);
+    localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify([]));
+    this.saveOfflineQueue([]);
+  }
+  /**
+   * 30-Day Audit Ledger Retention & Auto-Prune (Only called on explicit user action)
+   */
+  pruneLedgerOlderThan(days = 30) {
+    const ledger = this.getLedger();
+    const cutoffDate = /* @__PURE__ */ new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const cutoffTime = cutoffDate.getTime();
+    const pruned = [];
+    const remaining = [];
+    for (const item of ledger) {
+      const itemTime = new Date(item.entryDate || item.timestamp).getTime();
+      if (!isNaN(itemTime) && itemTime < cutoffTime) {
+        pruned.push(item);
+      } else {
+        remaining.push(item);
+      }
+    }
+    if (pruned.length > 0) {
+      this.saveLedger(remaining);
+    }
+    return { pruned, remaining };
   }
 };
 var storageService = new StorageService();

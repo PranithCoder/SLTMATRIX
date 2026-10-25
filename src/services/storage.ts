@@ -3107,312 +3107,11 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
   },
 ];
 
-export const INITIAL_LEDGER: LedgerTransaction[] = [
-  {
-    id: 'tx-1001',
-    timestamp: '2025-01-04 08:30:12',
-    userId: 'USR-KANISHKA',
-    userName: 'Mr. Kanishka',
-    actionType: 'DISPATCH_RECEIVE',
-    mainCategory: 'Rehabilitation',
-    subCategory: 'TC-OPCDR',
-    materialCode: 'OSPFIT002',
-    materialDescription: 'AERIAL CABLE FITTING - SHARP ANGLED',
-    quantityDelta: 100,
-    unit: 'PCS',
-    locatorId: 'TC-01-REH-250104-999',
-    notes: 'Main Branch dispatch received at Colombo South depot via batch locator decode.',
-    syncStatus: 'SYNCED',
-  },
-  {
-    id: 'tx-1002',
-    timestamp: '2025-01-04 09:15:40',
-    userId: 'USR-SUNIL',
-    userName: 'Sunil P. (Field Tech)',
-    actionType: 'DEVICE_ALLOCATION',
-    mainCategory: 'New Connection',
-    subCategory: 'TCOPNC',
-    materialCode: 'ONT-HW-EG8145V5',
-    materialDescription: 'HUAWEI FIBER ONT GPON DUAL-BAND WI-FI',
-    quantityDelta: -1,
-    unit: 'UNITS',
-    serialNumber: undefined,
-    accountNo: '0112458990',
-    customerName: 'K. D. Gunaratne',
-    notes: 'FTTH High-Speed Fiber activation completed with optical dBm test passed.',
-    syncStatus: 'SYNCED',
-  },
-  {
-    id: 'tx-1003',
-    timestamp: '2025-01-04 10:45:19',
-    userId: 'USR-SUNIL',
-    userName: 'Sunil P. (Field Tech)',
-    actionType: 'REHAB_CONSUMPTION',
-    mainCategory: 'Rehabilitation',
-    subCategory: 'TC-OPCDR',
-    materialCode: 'OSPFIT002',
-    materialDescription: 'AERIAL CABLE FITTING - SHARP ANGLED',
-    quantityDelta: -12,
-    unit: 'PCS',
-    workOrderNo: 'WO-2025-08129',
-    notes: 'Rehabilitation of trunk aerial span between Pole #41 and #48.',
-    syncStatus: 'SYNCED',
-  },
-  {
-    id: 'tx-1004',
-    timestamp: '2025-01-04 11:20:00',
-    userId: 'USR-SUNIL',
-    userName: 'Sunil P. (Field Tech)',
-    actionType: 'CUSTOMER_RETURN',
-    mainCategory: 'New Connection',
-    subCategory: 'TCOPNC-R',
-    materialCode: 'ONT-HW-EG8145V5',
-    materialDescription: 'HUAWEI FIBER ONT (CUSTOMER RETURNED)',
-    quantityDelta: 1,
-    unit: 'UNITS',
-    serialNumber: undefined,
-    accountNo: '0112789123',
-    customerName: 'A. R. M. Nazeer',
-    reasonCode: 'Service Churn / Relocation',
-    itemCondition: 'GOOD_REUSABLE',
-    notes: 'Segregated into customer return holding bay.',
-    syncStatus: 'SYNCED',
-  },
-  {
-    id: 'tx-1010',
-    timestamp: '2026-06-05 08:30:00',
-    entryDate: '2026-06-05',
-    userId: 'USR-KANISHKA',
-    userName: 'Mr. Kanishka',
-    actionType: 'DISPATCH_RECEIVE',
-    mainCategory: 'New Connection',
-    subCategory: 'TCOPNC',
-    materialCode: 'CPERTR042',
-    materialDescription: 'ADSL ROUTER 4-PORT (WI-FI) - FIBERHOME HG-180 (DOT LOGO)',
-    quantityDelta: 25,
-    unit: 'UNITS',
-    locatorId: 'NC-BIN-RTR-01-260605',
-    notes: 'Main Logistics Central Hub Colombo - Batch RTR-26-05',
-    syncStatus: 'SYNCED',
-  },
-  {
-    id: 'tx-1011',
-    timestamp: '2026-06-08 10:15:00',
-    entryDate: '2026-06-08',
-    userId: 'USR-KANISHKA',
-    userName: 'Mr. Kanishka',
-    actionType: 'DISPATCH_RECEIVE',
-    mainCategory: 'Rehabilitation',
-    subCategory: 'TC-OPCDR',
-    materialCode: 'OSPFIT002',
-    materialDescription: 'AERIAL CABLE FITTING - SHARP ANGLED',
-    quantityDelta: 150,
-    unit: 'PCS',
-    locatorId: 'TC-01-REH-260608-881',
-    notes: 'Container 08 Delivery from Welikada Central Depot',
-    syncStatus: 'SYNCED',
-  },
-  {
-    id: 'tx-1012',
-    timestamp: '2026-06-12 14:20:00',
-    entryDate: '2026-06-12',
-    userId: 'USR-SUNIL',
-    userName: 'Sunil P. (Field Tech)',
-    actionType: 'DISPATCH_RECEIVE',
-    mainCategory: 'New Connection',
-    subCategory: 'TCOPNC',
-    materialCode: 'CPEFTH064S',
-    materialDescription: 'GPON ONT (4FE+2TEL+WIFI) - HUAWEI HG8245H',
-    quantityDelta: 40,
-    unit: 'UNITS',
-    serialNumber: undefined,
-    locatorId: 'NC-BIN-ONT-260612',
-    notes: 'Inbound dispatch batch of Huawei ONTs verified with test power on.',
-    syncStatus: 'SYNCED',
-  },
-  {
-    id: 'tx-1013',
-    timestamp: '2026-06-15 09:00:00',
-    entryDate: '2026-06-15',
-    userId: 'USR-KANISHKA',
-    userName: 'Mr. Kanishka',
-    actionType: 'DISPATCH_RECEIVE',
-    mainCategory: 'Rehabilitation',
-    subCategory: 'TC-OPCDR',
-    materialCode: 'CABFTH001',
-    materialDescription: 'OPTICAL FIBER CABLE 48F SM AERIAL',
-    quantityDelta: 500,
-    unit: 'METERS',
-    locatorId: 'TC-01-CDR-260615-302',
-    notes: 'Rehab Trunk cable spool received for Colombo-Kandy road project.',
-    syncStatus: 'SYNCED',
-  },
-];
+export const INITIAL_LEDGER: LedgerTransaction[] = [];
 
-export const INITIAL_CUSTOMER_ISSUANCES: CustomerIssuance[] = [
-  {
-    id: 'ISS-20260602-001',
-    issueDate: '2026-06-02',
-    timestamp: '2026-06-02 10:15:00',
-    materialCode: 'CPERTR042',
-    materialDescription: 'ADSL ROUTER 4-PORT (WI-FI) - FIBERHOME HG-180 (DOT LOGO)',
-    serialNumber: undefined,
-    isSerialized: true,
-    quantity: 1,
-    unit: 'UNITS',
-    accountNo: '0112789456',
-    customerName: 'R. M. Bandara',
-    customerContact: '0714589210',
-    customerAddress: 'No. 42/B, Peradeniya Rd, Kandy',
-    issuedBy: 'Sunil P. (Field Tech)',
-    notes: 'Fiber drop installation completed. Wi-Fi verified 50Mbps.',
-    status: 'ACTIVE',
-  },
-  {
-    id: 'ISS-20260604-002',
-    issueDate: '2026-06-04',
-    timestamp: '2026-06-04 14:30:00',
-    materialCode: 'CPEFTH064S',
-    materialDescription: 'GPON ONT (4FE+2TEL+WIFI) - HUAWEI HG8245H',
-    serialNumber: undefined,
-    isSerialized: true,
-    quantity: 1,
-    unit: 'UNITS',
-    accountNo: '0112998314',
-    customerName: 'Nimal Jayasuriya',
-    customerContact: '0773124590',
-    customerAddress: '18 Havelock Rd, Colombo 05',
-    issuedBy: 'Mr. Kanishka',
-    notes: 'ONT authenticated to OLT Port 02/01',
-    status: 'ACTIVE',
-  },
-  {
-    id: 'ISS-20260605-003',
-    issueDate: '2026-06-05',
-    timestamp: '2026-06-05 09:45:00',
-    materialCode: 'CPESTB031V',
-    materialDescription: 'IPTV SET-TOP-BOX (4K) - PEO TV V3',
-    serialNumber: undefined,
-    isSerialized: true,
-    quantity: 1,
-    unit: 'UNITS',
-    accountNo: '0112445123',
-    customerName: 'Kavindu Senanayake',
-    customerContact: '0702154879',
-    customerAddress: '75 Temple Rd, Maharagama',
-    issuedBy: 'Sunil P. (Field Tech)',
-    notes: 'Direct customer premises return due to package downgrade.',
-    status: 'RETURNED_DIRECT',
-    returnDate: '2026-06-12',
-    returnType: 'TCOPNC-C',
-    returnCondition: 'GOOD_REUSABLE',
-    returnNotes: 'Returned directly to depot by customer. Device tested OK and credited to Collective stock.',
-    returnedBy: 'Sunil P. (Field Tech)',
-  },
-  {
-    id: 'ISS-20260528-004',
-    issueDate: '2026-05-28',
-    timestamp: '2026-05-28 16:20:00',
-    materialCode: 'CPERTR045S',
-    materialDescription: 'ROUTER 4-PORT (WI-FI) - ZTE F670L DUAL BAND',
-    serialNumber: undefined,
-    isSerialized: true,
-    quantity: 1,
-    unit: 'UNITS',
-    accountNo: '0112887612',
-    customerName: 'Anura Gunawardena',
-    customerContact: '0729988114',
-    customerAddress: '89 Galle Rd, Dehiwala',
-    issuedBy: 'Mr. Kanishka',
-    notes: 'Surge damaged unit replaced and sent to repair.',
-    status: 'RETURNED_WORKSHOP',
-    returnDate: '2026-06-14',
-    returnType: 'TCOPNC-R',
-    returnCondition: 'FAULTY_REPAIR',
-    returnNotes: 'Refurbished at central workshop and returned back to depot stock.',
-    returnedBy: 'Mr. Kanishka',
-  },
-  {
-    id: 'ISS-20260608-005',
-    issueDate: '2026-06-08',
-    timestamp: '2026-06-08 11:10:00',
-    materialCode: 'CABFTH038',
-    materialDescription: 'FIBER DROP CABLE 1-CORE G657A2 (BOW-TYPE)',
-    serialNumber: undefined,
-    isSerialized: false,
-    quantity: 85,
-    unit: 'METERS',
-    accountNo: '0112789456',
-    customerName: 'R. M. Bandara',
-    customerContact: '0714589210',
-    customerAddress: 'No. 42/B, Peradeniya Rd, Kandy',
-    issuedBy: 'Sunil P. (Field Tech)',
-    notes: 'Drop cable aerial span from DP-KND-09 to customer premise.',
-    status: 'ACTIVE',
-  },
-];
+export const INITIAL_CUSTOMER_ISSUANCES: CustomerIssuance[] = [];
 
-export const INITIAL_TRANSFERS: StockTransfer[] = [
-  {
-    id: 'TR-2026-001',
-    moveOrderNo: 'MO-2026-0812',
-    transferDate: '2026-06-15',
-    timestamp: '2026-06-15 11:30:00',
-    subCategory: 'TCOPNC',
-    mainCategory: 'New Connection',
-    materialCode: 'CPERTR045S',
-    materialDescription: 'ADSL ROUTER 4-PORT (WI-FI) - PROLINK PRS1140 (DOT LOGO)',
-    quantity: 2,
-    unit: 'UNITS',
-    isSerialized: true,
-    serialNumbers: [],
-    destinationDistrict: 'Kandy',
-    destinationBranch: 'SLT Regional Telecom Office - Kandy Peradeniya Rd',
-    dispatchOfficer: 'Mr. Kanishka',
-    carrierVehicle: 'WP-CAD-8812 (SLT Fleet Van)',
-    notes: 'Urgent stock balancing for fiber rollout in Kandy Central.',
-    status: 'DELIVERED',
-  },
-  {
-    id: 'TR-2026-002',
-    moveOrderNo: 'MO-2026-0824',
-    transferDate: '2026-06-18',
-    timestamp: '2026-06-18 14:15:00',
-    subCategory: 'TCOPNC-C',
-    mainCategory: 'New Connection',
-    materialCode: 'CPEFTH055S',
-    materialDescription: 'ECHOLIFE HG8145V5 ONT BASE UNIT (HUAWEI) (CUSTOMER COLLECTIVE)',
-    quantity: 5,
-    unit: 'UNITS',
-    isSerialized: true,
-    serialNumbers: [],
-    destinationDistrict: 'Galle',
-    destinationBranch: 'SLT Regional Telecom Center - Galle',
-    dispatchOfficer: 'Sunil P. (Field Tech)',
-    carrierVehicle: 'WP-CB-4490 (Courier Logistics)',
-    notes: 'Transfer of tested customer collected units for churn redeployment.',
-    status: 'IN_TRANSIT',
-  },
-  {
-    id: 'TR-2026-003',
-    moveOrderNo: 'MO-2026-0899',
-    transferDate: '2026-06-20',
-    timestamp: '2026-06-20 09:40:00',
-    subCategory: 'TC-OPCDR',
-    mainCategory: 'Rehabilitation',
-    materialCode: 'CABFTH001',
-    materialDescription: 'OPTICAL FIBER CABLE 48F SM AERIAL',
-    quantity: 350,
-    unit: 'METERS',
-    isSerialized: false,
-    destinationDistrict: 'Kurunegala',
-    destinationBranch: 'SLT Central Depot - Kurunegala',
-    dispatchOfficer: 'Mr. Kanishka',
-    carrierVehicle: 'CP-LH-1204 (Heavy Transport)',
-    notes: 'Rehab restoration cable dispatched as per Move Order allocation.',
-    status: 'DISPATCHED',
-  },
-];
+export const INITIAL_TRANSFERS: StockTransfer[] = [];
 
 class StorageService {
   /**
@@ -3647,34 +3346,26 @@ class StorageService {
         localStorage.setItem(MIGRATION_WIPE_DUMMY_SERIALS, 'true');
       }
 
-            // Fresh Database Reset: Delete testing data and restore accurate baseline on-hand details
-      const MIGRATION_FRESH_DB = 'SLT_FRESH_DB_ACCURATE_ONHAND_V3';
-      if (!localStorage.getItem(MIGRATION_FRESH_DB)) {
-        localStorage.setItem(MIGRATION_FRESH_DB, 'true');
-        
-        // 1. Reset inventory to INITIAL_INVENTORY with accurate on-hand stock and empty serials
+            // 100% Fresh Clean Slate Production Start
+      const MIGRATION_CLEAN_SLATE_PROD = 'SLT_CLEAN_SLATE_PROD_OCT2026_FINAL';
+      if (!localStorage.getItem(MIGRATION_CLEAN_SLATE_PROD)) {
+        localStorage.setItem(MIGRATION_CLEAN_SLATE_PROD, 'true');
+
+        // 1. Reset inventory to INITIAL_INVENTORY with default quantities and empty serials
         items = INITIAL_INVENTORY.map((item) => ({
           ...item,
           serialNumbers: [],
         }));
         this.saveInventory(items);
 
-        // 2. Delete test transactions from the ledger (e.g. TX-..., and any test dispatches like CPEDAT004 test)
-        const cleanLedger = INITIAL_LEDGER.map((tx) => ({
-          ...tx,
-          serialNumber: undefined,
-          serialNumbers: undefined,
-        }));
-        this.saveLedger(cleanLedger);
+        // 2. Clear all audit ledger records
+        this.saveLedger([]);
 
-        // 3. Clear testing issuances
-        const cleanIssuances = INITIAL_CUSTOMER_ISSUANCES.map((iss) => ({
-          ...iss,
-          serialNumber: undefined,
-        }));
-        this.saveCustomerIssuances(cleanIssuances);
+        // 3. Clear all customer issuances
+        this.saveCustomerIssuances([]);
 
-        // 4. Clear offline queue
+        // 4. Clear all transfers & offline queue
+        localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify([]));
         this.saveOfflineQueue([]);
 
         return items;
@@ -4510,19 +4201,9 @@ class StorageService {
       serialNumbers: [],
     }));
     this.saveInventory(fresh);
-
-    const cleanLedger = INITIAL_LEDGER.map((tx) => ({
-      ...tx,
-      serialNumber: undefined,
-      serialNumbers: undefined,
-    }));
-    this.saveLedger(cleanLedger);
-
-    const cleanIss = INITIAL_CUSTOMER_ISSUANCES.map((iss) => ({
-      ...iss,
-      serialNumber: undefined,
-    }));
-    this.saveCustomerIssuances(cleanIss);
+    this.saveLedger([]);
+    this.saveCustomerIssuances([]);
+    localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify([]));
     this.saveOfflineQueue([]);
   }
 
