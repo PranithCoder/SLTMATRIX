@@ -62,7 +62,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-RTR-FH180-01'],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-RTR-01',
@@ -78,7 +78,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-RTR-PL1140-01', 'SLT-RTR-PL1140-02', 'SLT-RTR-PL1140-03'],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-RTR-02',
@@ -94,7 +94,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 11 }, (_, i) => `SLT-RTR-TP8951-${(i + 1).toString().padStart(2, '0')}`),
+    serialNumbers: [],
     minThreshold: 2,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-RTR-03',
@@ -110,7 +110,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-AP-ARUBA303-01'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-ENT-01',
@@ -156,7 +156,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-CISCO-1121X-01', 'SLT-CISCO-1121X-02', 'SLT-CISCO-1121X-03', 'SLT-CISCO-1121X-04'],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-ENT-02',
@@ -172,7 +172,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-CISCO-891F-01'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-ENT-03',
@@ -248,7 +248,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-SHDSL-1424-01', 'SLT-SHDSL-1424-02'],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-DSL-01',
@@ -264,7 +264,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-SHDSL-1432-01'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-DSL-02',
@@ -415,7 +415,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-FG40F-01', 'SLT-FG40F-02', 'SLT-FG40F-03', 'SLT-FG40F-04', 'SLT-FG40F-05', 'SLT-FG40F-06', 'SLT-FG40F-07'],
+    serialNumbers: [],
     minThreshold: 2,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-SEC-01',
@@ -431,7 +431,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-FG60F-01'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-SEC-02',
@@ -447,7 +447,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 47 }, (_, i) => `SLT-ONT-TD64-A${(i + 1).toString().padStart(2, '0')}`),
+    serialNumbers: [],
     minThreshold: 10,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-ONT-01',
@@ -463,7 +463,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 72 }, (_, i) => `SLT-ONT-TD64-B${(i + 1).toString().padStart(2, '0')}`),
+    serialNumbers: [],
     minThreshold: 15,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-ONT-02',
@@ -479,7 +479,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-ONT-CD65-01'],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-ONT-03',
@@ -495,7 +495,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-ONT-CD65-02', 'SLT-ONT-CD65-03', 'SLT-ONT-CD65-04', 'SLT-ONT-CD65-05'],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-ONT-04',
@@ -556,7 +556,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-IAD4-01', 'SLT-IAD4-02'],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-VOIP-01',
@@ -572,7 +572,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-IAD8-01'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-VOIP-02',
@@ -588,7 +588,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-IPP-GS2602-01'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-VOIP-03',
@@ -604,7 +604,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-IPP-GS1782-01', 'SLT-IPP-GS1782-02', 'SLT-IPP-GS1782-03'],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-VOIP-04',
@@ -620,7 +620,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-CISCO-ISR11-01', 'SLT-CISCO-ISR11-02', 'SLT-CISCO-ISR11-03'],
+    serialNumbers: [],
     minThreshold: 1,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-ENT-04',
@@ -636,7 +636,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-CISCO-ISR11-04'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-ENT-05',
@@ -772,7 +772,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 30 }, (_, i) => `SLT-STB-SEI31-${(i + 1).toString().padStart(2, '0')}`),
+    serialNumbers: [],
     minThreshold: 5,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-STB-01',
@@ -878,7 +878,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 12 }, (_, i) => `SLT-TEL-PAN500-${(i + 1).toString().padStart(2, '0')}`),
+    serialNumbers: [],
     minThreshold: 2,
     lastUpdated: '2026-06-07',
     binLocation: 'NC-BIN-TEL-01',
@@ -942,7 +942,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-RET-SHDSL-01', 'SLT-RET-SHDSL-02', 'SLT-RET-SHDSL-03'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-SHDSL',
@@ -958,7 +958,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-RET-HW55-01', 'SLT-RET-HW55-02', 'SLT-RET-HW55-03', 'SLT-RET-HW55-04', 'SLT-RET-HW55-05', 'SLT-RET-HW55-06'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-HW55',
@@ -1004,7 +1004,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 45 }, (_, idx) => `SLT-RET-HW45-${(idx + 1).toString().padStart(3, '0')}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-HW45',
@@ -1035,7 +1035,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 8 }, (_, idx) => `SLT-RET-CD68-${(idx + 1).toString().padStart(2, '0')}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-CD68',
@@ -1081,7 +1081,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 6 }, (_, idx) => `SLT-RET-HW28-${(idx + 1).toString().padStart(2, '0')}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-HW28',
@@ -1097,7 +1097,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-RET-HW15-01'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-HW15',
@@ -1113,7 +1113,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-RET-LTE08-01'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-LTE',
@@ -1144,7 +1144,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 6 }, (_, idx) => `SLT-RET-HC27-${(idx + 1).toString().padStart(2, '0')}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-STB',
@@ -1235,7 +1235,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 21 }, (_, idx) => `SLT-RET-HC30-${(idx + 1).toString().padStart(2, '0')}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-STB',
@@ -1251,7 +1251,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 12 }, (_, idx) => `SLT-RET-NG01-${(idx + 1).toString().padStart(2, '0')}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-STB',
@@ -1267,7 +1267,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 18 }, (_, idx) => `SLT-RET-NG08-${(idx + 1).toString().padStart(2, '0')}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-STB',
@@ -1283,7 +1283,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-RET-SEI32-01'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-STB-01',
@@ -1299,7 +1299,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: Array.from({ length: 37 }, (_, idx) => `SLT-RET-SEI32-B${(idx + 1).toString().padStart(2, '0')}`),
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:30',
     binLocation: 'RET-BAY-STB-02',
@@ -1408,7 +1408,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-COL-HW55-001'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:00',
     binLocation: 'COL-STK-01',
@@ -1454,7 +1454,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-COL-TD64-001'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:00',
     binLocation: 'COL-STK-01',
@@ -1470,7 +1470,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-COL-CD68-001'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:00',
     binLocation: 'COL-STK-02',
@@ -1516,7 +1516,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-COL-HW15-001'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:00',
     binLocation: 'COL-STK-02',
@@ -1547,7 +1547,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-COL-STB23-001'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:00',
     binLocation: 'COL-STB-01',
@@ -1563,7 +1563,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-COL-STB31-001', 'SLT-COL-STB31-002'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:00',
     binLocation: 'COL-STB-01',
@@ -1639,7 +1639,7 @@ export const INITIAL_INVENTORY: InventoryItem[] = [
     inbound: 0,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-COL-STB32-001'],
+    serialNumbers: [],
     minThreshold: 0,
     lastUpdated: '2025-01-04 12:00',
     binLocation: 'COL-STB-01',
@@ -3136,7 +3136,7 @@ export const INITIAL_LEDGER: LedgerTransaction[] = [
     materialDescription: 'HUAWEI FIBER ONT GPON DUAL-BAND WI-FI',
     quantityDelta: -1,
     unit: 'UNITS',
-    serialNumber: 'SLT-ONT-98200',
+    serialNumber: undefined,
     accountNo: '0112458990',
     customerName: 'K. D. Gunaratne',
     notes: 'FTTH High-Speed Fiber activation completed with optical dBm test passed.',
@@ -3170,7 +3170,7 @@ export const INITIAL_LEDGER: LedgerTransaction[] = [
     materialDescription: 'HUAWEI FIBER ONT (CUSTOMER RETURNED)',
     quantityDelta: 1,
     unit: 'UNITS',
-    serialNumber: 'SLT-ONT-RET-111',
+    serialNumber: undefined,
     accountNo: '0112789123',
     customerName: 'A. R. M. Nazeer',
     reasonCode: 'Service Churn / Relocation',
@@ -3225,7 +3225,7 @@ export const INITIAL_LEDGER: LedgerTransaction[] = [
     materialDescription: 'GPON ONT (4FE+2TEL+WIFI) - HUAWEI HG8245H',
     quantityDelta: 40,
     unit: 'UNITS',
-    serialNumber: 'SLT-ONT-8245H-BATCH-01',
+    serialNumber: undefined,
     locatorId: 'NC-BIN-ONT-260612',
     notes: 'Inbound dispatch batch of Huawei ONTs verified with test power on.',
     syncStatus: 'SYNCED',
@@ -3256,7 +3256,7 @@ export const INITIAL_CUSTOMER_ISSUANCES: CustomerIssuance[] = [
     timestamp: '2026-06-02 10:15:00',
     materialCode: 'CPERTR042',
     materialDescription: 'ADSL ROUTER 4-PORT (WI-FI) - FIBERHOME HG-180 (DOT LOGO)',
-    serialNumber: 'SLT-RTR-FH180-8812',
+    serialNumber: undefined,
     isSerialized: true,
     quantity: 1,
     unit: 'UNITS',
@@ -3274,7 +3274,7 @@ export const INITIAL_CUSTOMER_ISSUANCES: CustomerIssuance[] = [
     timestamp: '2026-06-04 14:30:00',
     materialCode: 'CPEFTH064S',
     materialDescription: 'GPON ONT (4FE+2TEL+WIFI) - HUAWEI HG8245H',
-    serialNumber: 'SLT-ONT-8245H-9921',
+    serialNumber: undefined,
     isSerialized: true,
     quantity: 1,
     unit: 'UNITS',
@@ -3292,7 +3292,7 @@ export const INITIAL_CUSTOMER_ISSUANCES: CustomerIssuance[] = [
     timestamp: '2026-06-05 09:45:00',
     materialCode: 'CPESTB031V',
     materialDescription: 'IPTV SET-TOP-BOX (4K) - PEO TV V3',
-    serialNumber: 'SLT-STB-PEO4K-3341',
+    serialNumber: undefined,
     isSerialized: true,
     quantity: 1,
     unit: 'UNITS',
@@ -3315,7 +3315,7 @@ export const INITIAL_CUSTOMER_ISSUANCES: CustomerIssuance[] = [
     timestamp: '2026-05-28 16:20:00',
     materialCode: 'CPERTR045S',
     materialDescription: 'ROUTER 4-PORT (WI-FI) - ZTE F670L DUAL BAND',
-    serialNumber: 'SLT-ZTE-F670L-5520',
+    serialNumber: undefined,
     isSerialized: true,
     quantity: 1,
     unit: 'UNITS',
@@ -3365,7 +3365,7 @@ export const INITIAL_TRANSFERS: StockTransfer[] = [
     quantity: 2,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-RTR-PL1140-01', 'SLT-RTR-PL1140-02'],
+    serialNumbers: [],
     destinationDistrict: 'Kandy',
     destinationBranch: 'SLT Regional Telecom Office - Kandy Peradeniya Rd',
     dispatchOfficer: 'Mr. Kanishka',
@@ -3385,7 +3385,7 @@ export const INITIAL_TRANSFERS: StockTransfer[] = [
     quantity: 5,
     unit: 'UNITS',
     isSerialized: true,
-    serialNumbers: ['SLT-ONT-HW8145-COL-01', 'SLT-ONT-HW8145-COL-02'],
+    serialNumbers: [],
     destinationDistrict: 'Galle',
     destinationBranch: 'SLT Regional Telecom Center - Galle',
     dispatchOfficer: 'Sunil P. (Field Tech)',
@@ -3636,6 +3636,43 @@ class StorageService {
         needsSave = true;
       }
 
+            // Auto-migrate to purge all dummy mock serial numbers (e.g. SLT-COL-STB31-001) from existing browser storage
+      const MIGRATION_WIPE_DUMMY_SERIALS = 'SLT_PURGE_DUMMY_SERIALS_2026_V1';
+      if (!localStorage.getItem(MIGRATION_WIPE_DUMMY_SERIALS)) {
+        items = items.map((item) => ({
+          ...item,
+          serialNumbers: [],
+        }));
+        needsSave = true;
+        localStorage.setItem(MIGRATION_WIPE_DUMMY_SERIALS, 'true');
+      }
+
+      // Ledger Stock Reconciliation: Automatically restore stock clobbered by serials length overwrite
+      const RECONCILIATION_FLAG = 'SLT_RECONCILE_STOCK_QTY_2026_V2';
+      if (!localStorage.getItem(RECONCILIATION_FLAG)) {
+        localStorage.setItem(RECONCILIATION_FLAG, 'true');
+        const ledger = this.getLedger();
+        items = items.map((item) => {
+          const itemTxs = ledger.filter(
+            (tx) => tx.materialCode.toUpperCase() === item.materialCode.toUpperCase() && tx.subCategory === item.subCategory
+          );
+          if (itemTxs.length > 0) {
+            const receiveDeltas = itemTxs
+              .filter((tx) => tx.actionType === 'DISPATCH_RECEIVE' && tx.quantityDelta > 0)
+              .reduce((sum, tx) => sum + tx.quantityDelta, 0);
+            const allocateDeltas = itemTxs
+              .filter((tx) => tx.actionType === 'DEVICE_ALLOCATION' || tx.actionType === 'REHAB_CONSUMPTION')
+              .reduce((sum, tx) => sum + Math.abs(tx.quantityDelta), 0);
+            const expectedMin = Math.max(0, receiveDeltas - allocateDeltas);
+            if (expectedMin > item.quantity) {
+              needsSave = true;
+              return { ...item, quantity: expectedMin };
+            }
+          }
+          return item;
+        });
+      }
+
       if (needsSave) {
         this.saveInventory(items);
       }
@@ -3742,21 +3779,33 @@ class StorageService {
       item.quantity = Math.max(0, item.quantity + tx.quantityDelta);
       item.lastUpdated = timestamp.slice(0, 16);
 
-      // Handle serialized devices
-      if (item.isSerialized && tx.serialNumber) {
+      // Handle serialized devices (single serial or bulk batch array)
+      const incomingSerials: string[] = tx.serialNumbers && tx.serialNumbers.length > 0
+        ? tx.serialNumbers
+        : (tx.serialNumber && !tx.serialNumber.includes('Devices (Batch Intake)') ? [tx.serialNumber] : []);
+
+      if (incomingSerials.length > 0 || item.isSerialized) {
+        if (incomingSerials.length > 0) {
+          item.isSerialized = true;
+        }
         const serials = item.serialNumbers ? [...item.serialNumbers] : [];
         if (tx.quantityDelta < 0) {
-          // Remove serial on allocation
-          const sIdx = serials.indexOf(tx.serialNumber);
-          if (sIdx >= 0) serials.splice(sIdx, 1);
+          // Remove serials on allocation/consumption/transfer
+          incomingSerials.forEach((sn) => {
+            const sIdx = serials.indexOf(sn);
+            if (sIdx >= 0) serials.splice(sIdx, 1);
+          });
         } else if (tx.quantityDelta > 0) {
-          // Add serial on receive/return
-          if (!serials.includes(tx.serialNumber)) {
-            serials.push(tx.serialNumber);
-          }
+          // Add serials on receive/return
+          incomingSerials.forEach((sn) => {
+            if (!serials.includes(sn)) {
+              serials.push(sn);
+            }
+          });
         }
         item.serialNumbers = serials;
-        item.quantity = serials.length;
+        // CRITICAL FIX: NEVER overwrite item.quantity with serials.length!
+        // item.quantity is already accurately updated via item.quantity = Math.max(0, item.quantity + tx.quantityDelta)
       }
       inventory[itemIndex] = item;
     } else if (tx.quantityDelta > 0) {
@@ -3770,7 +3819,7 @@ class StorageService {
         quantity: tx.quantityDelta,
         unit: (tx.unit as InventoryItem['unit']) || 'PCS',
         isSerialized: Boolean(tx.serialNumber),
-        serialNumbers: tx.serialNumber ? [tx.serialNumber] : undefined,
+        serialNumbers: [],
         minThreshold: 5,
         lastUpdated: timestamp.slice(0, 16),
         binLocation: tx.locatorId || 'DEFAULT-BIN',
@@ -3800,6 +3849,15 @@ class StorageService {
   getCustomerIssuances(): CustomerIssuance[] {
     if (typeof window === 'undefined') return INITIAL_CUSTOMER_ISSUANCES;
     const saved = localStorage.getItem(STORAGE_KEYS.CUSTOMER_ISSUANCES);
+    const MIGRATION_WIPE_ISSUANCE_SERIALS = 'SLT_PURGE_ISSUANCE_SERIALS_2026_V1';
+    if (!localStorage.getItem(MIGRATION_WIPE_ISSUANCE_SERIALS)) {
+      localStorage.setItem(MIGRATION_WIPE_ISSUANCE_SERIALS, 'true');
+      const base = saved ? JSON.parse(saved) : INITIAL_CUSTOMER_ISSUANCES;
+      const cleaned = base.map((i: any) => ({ ...i, serialNumber: undefined }));
+      this.saveCustomerIssuances(cleaned);
+      return cleaned;
+    }
+
     if (!saved) {
       this.saveCustomerIssuances(INITIAL_CUSTOMER_ISSUANCES);
       return INITIAL_CUSTOMER_ISSUANCES;
@@ -4022,10 +4080,7 @@ class StorageService {
       lastUpdated: today,
     };
 
-    // If serialized and serial numbers provided, synchronize quantity with serials count
-    if (updatedItem.isSerialized && updatedItem.serialNumbers && updatedItem.serialNumbers.length > 0) {
-      updatedItem.quantity = updatedItem.serialNumbers.length;
-    }
+    // Preserves explicit quantity set by user
 
     inventory[idx] = updatedItem;
     this.saveInventory(inventory);
@@ -4195,7 +4250,6 @@ class StorageService {
     if (item.isSerialized && serialNumbers.length > 0) {
       const serialSet = new Set(serialNumbers);
       item.serialNumbers = (item.serialNumbers || []).filter((s) => !serialSet.has(s));
-      item.quantity = item.serialNumbers.length;
     }
 
     inventory[itemIndex] = item;

@@ -103,6 +103,7 @@ export interface LedgerTransaction {
   quantityDelta: number; // e.g. -1, +50
   unit: string;
   serialNumber?: string;
+  serialNumbers?: string[];
   accountNo?: string;        // Customer Account # (Workflow A)
   customerName?: string;     // Customer Name (Workflow A)
   workOrderNo?: string;      // Work Order # (Workflow B)

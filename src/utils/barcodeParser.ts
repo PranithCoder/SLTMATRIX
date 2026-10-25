@@ -285,7 +285,7 @@ export function findEquipmentByBarcode(
   const clean = extractSerialNumber(barcodeOrSerial).trim().toLowerCase();
   const rawClean = barcodeOrSerial.trim().toLowerCase();
 
-  // 1. Exact Serial Number Match in any item's stock
+  // 1. Exact Serial Number Match in any item's stock (Exact device mapping)
   for (const item of inventory) {
     if (item.serialNumbers && item.serialNumbers.length > 0) {
       const found = item.serialNumbers.some((s) => s.toLowerCase() === clean || s.toLowerCase() === rawClean);
@@ -302,33 +302,7 @@ export function findEquipmentByBarcode(
     }
   }
 
-  // 3. Serial Number Prefix to Model Heuristic Mapping
-  // Handles real telecom equipment where serial prefixes encode the equipment model
-  const prefixMap: Array<{ pattern: RegExp; codeMatch: string }> = [
-    { pattern: /^(?:SLT-RTR-TP|TP8951|TD-W8951)/i, codeMatch: 'CPERTR022S' }, // TP-Link ADSL Router
-    { pattern: /^(?:SLT-RTR-PL|PRS1140|PL1140)/i, codeMatch: 'CPERTR045S' },  // Prolink ADSL Router
-    { pattern: /^(?:SLT-RTR-FH|HG-180|FH180)/i, codeMatch: 'CPERTR042' },     // FiberHome ADSL Router
-    { pattern: /^(?:SLT-CISCO-1121|C1121|1121X)/i, codeMatch: 'NWKCS001' },   // Cisco 1121X
-    { pattern: /^(?:SLT-CISCO-891|C891|891F)/i, codeMatch: 'NWKCS002' },      // Cisco 891F
-    { pattern: /^(?:SLT-AP-ARUBA|ARUBA303|AP-303)/i, codeMatch: 'NWKWFM049' },// Aruba AP-303
-    { pattern: /^(?:SLT-FG40|FG40F)/i, codeMatch: 'NWKFW001' },               // FortiGate 40F
-    { pattern: /^(?:SLT-FG60|FG60F)/i, codeMatch: 'NWKFW002' },               // FortiGate 60F
-    { pattern: /^(?:SLT-SHDSL-1424)/i, codeMatch: 'NWKRT001' },               // SHDSL 1424
-    { pattern: /^(?:SLT-SHDSL-1432)/i, codeMatch: 'NWKRT002' },               // SHDSL 1432
-    { pattern: /^(?:SLT-ONT-TD64|TD64)/i, codeMatch: 'CPEONT001' },           // ONT TD64
-    { pattern: /^(?:SLT-ONT-CD65|CD65)/i, codeMatch: 'CPEONT002' },           // ONT CD65
-  ];
-
-  for (const { pattern, codeMatch } of prefixMap) {
-    if (pattern.test(clean) || pattern.test(rawClean)) {
-      const item = inventory.find((i) => i.materialCode.toUpperCase() === codeMatch.toUpperCase());
-      if (item) {
-        return { item, matchType: 'MODEL_PREFIX', category: item.subCategory };
-      }
-    }
-  }
-
-  // 4. Description Substring Match
+  // 3. Exact Description / Model Substring Match (Case-insensitive)
   for (const item of inventory) {
     const desc = item.description.toLowerCase();
     if (clean.length >= 6 && desc.includes(clean)) {

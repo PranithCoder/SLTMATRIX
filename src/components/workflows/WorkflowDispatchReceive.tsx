@@ -18,12 +18,22 @@ import {
   Hash, 
   Boxes,
   Cable,
-  Check
+  Check,
+  Cpu,
+  Copy,
+  Plus,
+  X,
+  ListPlus,
+  UploadCloud,
+  RotateCcw,
+  Scan,
+  Eye,
+  FileCheck
 } from 'lucide-react';
 import { InventoryItem, LedgerTransaction, SubCategoryCode, UserPersona, OpenScannerFn } from '../../types/inventory';
 import { storageService } from '../../services/storage';
 import { parseBatchLocatorCode } from '../../services/batchParser';
-import { extractSerialNumber, findEquipmentByBarcode } from '../../utils/barcodeParser';
+import { extractSerialNumber, findEquipmentByBarcode, parseBarcode } from '../../utils/barcodeParser';
 import confetti from 'canvas-confetti';
 import { SearchableSelect } from '../common/SearchableSelect';
 
@@ -81,8 +91,17 @@ export const WorkflowDispatchReceive: React.FC<WorkflowDispatchReceiveProps> = (
   // 5. Date It Came (Arrival Date)
   const [arrivalDate, setArrivalDate] = useState<string>(todayStr);
 
-  // 6. Serial Number (Optional)
+  // 6. Serial Number & Bulk Serial Intake Engine
+  const [serialIntakeMode, setSerialIntakeMode] = useState<'SINGLE' | 'BULK'>('SINGLE');
   const [serialNumber, setSerialNumber] = useState<string>('');
+  const [batchSerials, setBatchSerials] = useState<string[]>([]);
+  const [bulkInputText, setBulkInputText] = useState<string>('');
+  const [bulkPasteText, setBulkPasteText] = useState<string>('');
+  const [showBulkPasteArea, setShowBulkPasteArea] = useState<boolean>(false);
+  const [batchSearchQuery, setBatchSearchQuery] = useState<string>('');
+  const [selectedPreviewSerial, setSelectedPreviewSerial] = useState<string | null>(null);
+  const [autoSyncQuantity, setAutoSyncQuantity] = useState<boolean>(true);
+  const [copiedSerial, setCopiedSerial] = useState<string | null>(null);
 
   // 7. Logistics Notes
   const [notes, setNotes] = useState<string>('Dispatched from SLT Welikada Central Logistics Hub via Container 14.');
@@ -145,6 +164,7 @@ export const WorkflowDispatchReceive: React.FC<WorkflowDispatchReceiveProps> = (
     if (prefilledSerial) {
       const clean = extractSerialNumber(prefilledSerial);
       setSerialNumber(clean);
+      setSelectedPreviewSerial(clean);
       const match = findEquipmentByBarcode(clean, inventory);
       if (match.item) {
         if (match.item.subCategory === 'TCOPNC' || match.item.subCategory === 'TC-OPCDR') {
@@ -155,6 +175,149 @@ export const WorkflowDispatchReceive: React.FC<WorkflowDispatchReceiveProps> = (
       }
     }
   }, [prefilledSerial, inventory]);
+
+  // Auto-sync quantity with batch serials count
+  useEffect(() => {
+    if (serialIntakeMode === 'BULK' && autoSyncQuantity && batchSerials.length > 0) {
+      setQuantity(batchSerials.length);
+      setUnit('UNITS');
+    }
+  }, [batchSerials.length, serialIntakeMode, autoSyncQuantity]);
+
+  // Bulk Serial Operations
+  const handleAddBatchSerials = (newSerials: string[]) => {
+    const cleaned = newSerials
+      .map((s) => extractSerialNumber(s).trim())
+      .filter((s) => s.length > 0);
+
+    if (cleaned.length === 0) return;
+
+    setBatchSerials((prev) => {
+      const existing = new Set(prev.map((s) => s.toUpperCase()));
+      const added: string[] = [];
+      cleaned.forEach((s) => {
+        if (!existing.has(s.toUpperCase())) {
+          existing.add(s.toUpperCase());
+          added.push(s);
+        }
+      });
+      return [...prev, ...added];
+    });
+
+    if (cleaned.length > 0) {
+      setSelectedPreviewSerial(cleaned[cleaned.length - 1]);
+      // Auto-detect item from first new serial if current selected item doesn't match
+      const match = findEquipmentByBarcode(cleaned[0], inventory);
+      if (match.item && (!selectedItemId || match.item.id !== selectedItemId)) {
+        if (match.item.subCategory === 'TCOPNC' || match.item.subCategory === 'TC-OPCDR') {
+          setTargetCategory(match.item.subCategory);
+        }
+        setSelectedItemId(match.item.id);
+        setUnit(match.item.unit);
+      }
+    }
+  };
+
+  const handleParseAndAddPastedSerials = () => {
+    if (!bulkPasteText.trim()) return;
+    const tokens = bulkPasteText.split(/[\r\n,;\t]+/);
+    handleAddBatchSerials(tokens);
+    setBulkPasteText('');
+    setShowBulkPasteArea(false);
+  };
+
+  const handleOpenContinuousCameraScanner = () => {
+    onOpenScanner(
+      'Continuous Batch Scanner — Scan each device serial barcode one-by-one',
+      (scannedText, allScanned) => {
+        if (allScanned && allScanned.length > 0) {
+          handleAddBatchSerials(allScanned);
+        } else if (scannedText) {
+          handleAddBatchSerials([scannedText]);
+        }
+      },
+      true
+    );
+  };
+
+  const handleRemoveBatchSerial = (serialToRemove: string) => {
+    setBatchSerials((prev) => prev.filter((s) => s !== serialToRemove));
+    if (selectedPreviewSerial === serialToRemove) {
+      setSelectedPreviewSerial(null);
+    }
+  };
+
+  const handleClearAllBatchSerials = () => {
+    if (batchSerials.length > 0 && !window.confirm(`Clear all ${batchSerials.length} scanned serial numbers from the intake batch?`)) {
+      return;
+    }
+    setBatchSerials([]);
+    setSelectedPreviewSerial(null);
+  };
+
+  const handleExportBatchSerials = () => {
+    if (batchSerials.length === 0) return;
+    const content =
+      'data:text/csv;charset=utf-8,' +
+      [
+        'Index,Serial Number,Item Code,Description,Locator,Intake Date',
+        ...batchSerials.map(
+          (s, idx) =>
+            `${idx + 1},"${s}","${selectedItem ? selectedItem.materialCode : ''}","${selectedItem ? selectedItem.description : ''}","${locatorId}","${arrivalDate}"`
+        ),
+      ].join('\n');
+    const encodedUri = encodeURI(content);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Batch_Serials_${selectedItem?.materialCode || 'Intake'}_${arrivalDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCopySerial = (s: string) => {
+    navigator.clipboard.writeText(s);
+    setCopiedSerial(s);
+    setTimeout(() => setCopiedSerial(null), 2000);
+  };
+
+  // Active Device for Live Details Card
+  const activeSerial = serialIntakeMode === 'SINGLE'
+    ? serialNumber.trim()
+    : (selectedPreviewSerial || (batchSerials.length > 0 ? batchSerials[batchSerials.length - 1] : ''));
+
+  const parsedActive = useMemo(() => {
+    if (!activeSerial) return null;
+    return parseBarcode(activeSerial);
+  }, [activeSerial]);
+
+  const matchActive = useMemo(() => {
+    if (!activeSerial) return null;
+    return findEquipmentByBarcode(activeSerial, inventory);
+  }, [activeSerial, inventory]);
+
+  const existingInStock = useMemo(() => {
+    if (!activeSerial) return null;
+    return inventory.find((i) =>
+      i.serialNumbers?.some((s) => s.toLowerCase() === activeSerial.toLowerCase())
+    );
+  }, [activeSerial, inventory]);
+
+  // Duplicates detection across batch and inventory
+  const batchSerialsAlreadyInInventory = useMemo(() => {
+    if (batchSerials.length === 0) return [];
+    const stockSet = new Set<string>();
+    inventory.forEach((item) => {
+      item.serialNumbers?.forEach((s) => stockSet.add(s.toUpperCase()));
+    });
+    return batchSerials.filter((s) => stockSet.has(s.toUpperCase()));
+  }, [batchSerials, inventory]);
+
+  const filteredBatchSerials = useMemo(() => {
+    if (!batchSearchQuery.trim()) return batchSerials;
+    const q = batchSearchQuery.toLowerCase().trim();
+    return batchSerials.filter((s) => s.toLowerCase().includes(q));
+  }, [batchSerials, batchSearchQuery]);
 
   const selectedItem = inventory.find((i) => i.id === selectedItemId);
 
@@ -211,7 +374,9 @@ export const WorkflowDispatchReceive: React.FC<WorkflowDispatchReceiveProps> = (
       // Serial Number filter
       if (summarySerialFilter.trim()) {
         const q = summarySerialFilter.toLowerCase().trim();
-        const matchSerial = tx.serialNumber && tx.serialNumber.toLowerCase().includes(q);
+        const matchSerial =
+          (tx.serialNumber && tx.serialNumber.toLowerCase().includes(q)) ||
+          (tx.serialNumbers && tx.serialNumbers.some((s) => s.toLowerCase().includes(q)));
         if (!matchSerial) return false;
       }
 
@@ -278,6 +443,18 @@ export const WorkflowDispatchReceive: React.FC<WorkflowDispatchReceiveProps> = (
     setIsSubmitting(true);
 
     try {
+      const isBulk = serialIntakeMode === 'BULK';
+      const finalSerials = isBulk
+        ? batchSerials
+        : (serialNumber.trim() ? [serialNumber.trim()] : []);
+      const finalQuantity = isBulk && finalSerials.length > 0 ? finalSerials.length : quantity;
+
+      if (selectedItem.isSerialized && isBulk && finalSerials.length === 0) {
+        setValidationError('Please enter or scan at least one serial number for bulk intake of this serialized equipment.');
+        setIsSubmitting(false);
+        return;
+      }
+
       const result = storageService.executeTransaction({
         userId: activeUser.id,
         userName: activeUser.name,
@@ -286,20 +463,24 @@ export const WorkflowDispatchReceive: React.FC<WorkflowDispatchReceiveProps> = (
         subCategory: targetCategory,
         materialCode: selectedItem.materialCode,
         materialDescription: selectedItem.description,
-        quantityDelta: quantity,
+        quantityDelta: finalQuantity,
         unit,
         locatorId: locatorId.trim(),
-        serialNumber: serialNumber.trim() || undefined,
+        serialNumber:
+          finalSerials.length === 1
+            ? finalSerials[0]
+            : (finalSerials.length > 1 ? `${finalSerials.length} Devices (Batch Intake)` : undefined),
+        serialNumbers: finalSerials.length > 0 ? finalSerials : undefined,
         entryDate: arrivalDate,
-        notes: `${notes.trim()} (Locator: ${locatorId.trim()})`,
+        notes: `${notes.trim()} (Locator: ${locatorId.trim()}${finalSerials.length > 1 ? `, Serials: ${finalSerials.length} units` : ''})`,
       });
 
       refreshLedger();
 
       try {
         confetti({
-          particleCount: 50,
-          spread: 60,
+          particleCount: 60,
+          spread: 70,
           origin: { y: 0.7 },
           colors: targetCategory === 'TC-OPCDR' ? ['#43B02A', '#15803D', '#0099FF'] : ['#0056B3', '#0284C7', '#43B02A'],
         });
@@ -311,12 +492,20 @@ export const WorkflowDispatchReceive: React.FC<WorkflowDispatchReceiveProps> = (
         ? 'Cached locally in offline queue.'
         : 'Stock increased and recorded date-wise in audit ledger.';
 
+      const serialCountMsg = finalSerials.length > 1
+        ? ` with ${finalSerials.length} unique device serial numbers`
+        : (finalSerials.length === 1 ? ` (S/N: ${finalSerials[0]})` : '');
+
       onSuccess(
-        `Dispatch received! Added +${quantity} ${unit} of ${selectedItem.materialCode} into ${targetCategory} (Locator: ${locatorId}) on ${arrivalDate}. ${syncMsg}`
+        `Dispatch received! Added +${finalQuantity} ${unit} of ${selectedItem.materialCode}${serialCountMsg} into ${targetCategory} (Locator: ${locatorId}) on ${arrivalDate}. ${syncMsg}`
       );
 
       // Reset form
       setSerialNumber('');
+      setBatchSerials([]);
+      setBulkInputText('');
+      setBulkPasteText('');
+      setSelectedPreviewSerial(null);
       if (onClearPrefill) onClearPrefill();
     } catch (err: unknown) {
       setValidationError(err instanceof Error ? err.message : 'Dispatch intake failed.');
@@ -837,58 +1026,717 @@ export const WorkflowDispatchReceive: React.FC<WorkflowDispatchReceiveProps> = (
             </div>
           </div>
 
-          {/* Step 6: Serial Number (Optional) & Logistics Notes */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-            <div className="input-group">
-              <label className="input-label">
-                <span>Device Serial Number (S/N)</span>
-                <span style={{ color: '#059669', fontWeight: 600 }}>Optional (ONT/Router)</span>
-              </label>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <input
-                  type="text"
-                  value={serialNumber}
-                  onChange={(e) => setSerialNumber(e.target.value)}
-                  placeholder="e.g. SLT-ONT-8245H-9912 (or leave empty for bulk)"
-                  className="input-field mono"
-                  style={{ fontWeight: 700 }}
-                />
+          {/* Step 6: Device Serial Number & Bulk Intake Mode Switcher */}
+          <div style={{ marginTop: 8, padding: '16px', backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+              <div>
+                <label className="input-label" style={{ marginBottom: 2 }}>
+                  <span style={{ fontWeight: 800, color: 'var(--slt-deep-blue)', fontSize: '0.95rem' }}>
+                    Step 6: Device Serial Numbers (S/N) &amp; Equipment Verification
+                  </span>
+                  <span style={{ color: '#059669', fontWeight: 600, fontSize: '0.8rem', marginLeft: 6 }}>
+                    (ONT / Router / Terminal Equipment)
+                  </span>
+                </label>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Scan or paste serial numbers to auto-extract device telemetry, brand, and hardware specs.
+                </div>
+              </div>
+
+              {/* Segmented Mode Selector: Single vs Bulk */}
+              <div style={{ display: 'flex', backgroundColor: '#E2E8F0', padding: 3, borderRadius: 8 }}>
                 <button
                   type="button"
-                  onClick={() =>
-                    onOpenScanner(
-                      'Scan Device Barcode / S/N (All Equipment & Models)',
-                      (scanned) => {
-                        const clean = extractSerialNumber(scanned);
-                        setSerialNumber(clean);
-                        const match = findEquipmentByBarcode(clean, inventory);
-                        if (match.item) {
-                          if (match.item.subCategory === 'TCOPNC' || match.item.subCategory === 'TC-OPCDR') {
-                            setTargetCategory(match.item.subCategory);
-                          }
-                          setSelectedItemId(match.item.id);
-                          setUnit(match.item.unit);
-                        }
-                      }
-                    )
-                  }
-                  className="btn btn-outline"
-                  style={{ minHeight: 48, padding: '0 12px' }}
-                  title="Scan Serial with Camera"
+                  onClick={() => setSerialIntakeMode('SINGLE')}
+                  style={{
+                    padding: '6px 14px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    background: serialIntakeMode === 'SINGLE' ? '#0056B3' : 'transparent',
+                    color: serialIntakeMode === 'SINGLE' ? '#FFFFFF' : '#475569',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    transition: 'all 0.15s ease',
+                  }}
                 >
-                  <QrCode size={18} />
+                  <Cpu size={14} />
+                  <span>Single Device S/N</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSerialIntakeMode('BULK')}
+                  style={{
+                    padding: '6px 14px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    background: serialIntakeMode === 'BULK' ? '#0056B3' : 'transparent',
+                    color: serialIntakeMode === 'BULK' ? '#FFFFFF' : '#475569',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <ListPlus size={14} />
+                  <span>Bulk Serial Batch ({batchSerials.length})</span>
                 </button>
               </div>
             </div>
 
-            <div className="input-group">
-              <label className="input-label">Logistics Dispatch Notes / Container Reference</label>
+            {/* SINGLE MODE */}
+            {serialIntakeMode === 'SINGLE' && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <input
+                      type="text"
+                      value={serialNumber}
+                      onChange={(e) => setSerialNumber(e.target.value)}
+                      placeholder="e.g. 2102312CHW10K1234567 or SLT-ONT-8245H-9912"
+                      className="input-field mono"
+                      style={{ fontWeight: 700, fontSize: '0.95rem' }}
+                    />
+                    {serialNumber && (
+                      <button
+                        type="button"
+                        onClick={() => setSerialNumber('')}
+                        style={{
+                          position: 'absolute',
+                          right: 10,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          border: 'none',
+                          background: 'none',
+                          cursor: 'pointer',
+                          color: '#94A3B8',
+                          padding: 4,
+                        }}
+                        title="Clear Serial"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onOpenScanner(
+                        'Scan Device Barcode / S/N (All Equipment & Models)',
+                        (scanned) => {
+                          const clean = extractSerialNumber(scanned);
+                          setSerialNumber(clean);
+                          const match = findEquipmentByBarcode(clean, inventory);
+                          if (match.item) {
+                            if (match.item.subCategory === 'TCOPNC' || match.item.subCategory === 'TC-OPCDR') {
+                              setTargetCategory(match.item.subCategory);
+                            }
+                            setSelectedItemId(match.item.id);
+                            setUnit(match.item.unit);
+                          }
+                        }
+                      )
+                    }
+                    className="btn btn-outline"
+                    style={{ minHeight: 46, padding: '0 16px', gap: 6, fontWeight: 700 }}
+                    title="Scan Serial with Camera"
+                  >
+                    <QrCode size={18} />
+                    <span>Scan with Camera</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* BULK BATCH MODE (For 50, 100, 200+ Devices) */}
+            {serialIntakeMode === 'BULK' && (
+              <div
+                style={{
+                  padding: 14,
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: 14,
+                }}
+              >
+                {/* Bulk Controls Header */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                    marginBottom: 12,
+                    paddingBottom: 10,
+                    borderBottom: '1px solid #E2E8F0',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div
+                      style={{
+                        padding: '4px 10px',
+                        backgroundColor: batchSerials.length > 0 ? '#DCFCE7' : '#F1F5F9',
+                        color: batchSerials.length > 0 ? '#15803D' : '#64748B',
+                        borderRadius: 20,
+                        fontWeight: 800,
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      <CheckCircle2 size={15} />
+                      <span>{batchSerials.length} Devices Loaded in Batch</span>
+                    </div>
+
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: '0.8rem',
+                        color: '#334155',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        marginLeft: 8,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={autoSyncQuantity}
+                        onChange={(e) => {
+                          setAutoSyncQuantity(e.target.checked);
+                          if (e.target.checked && batchSerials.length > 0) {
+                            setQuantity(batchSerials.length);
+                            setUnit('UNITS');
+                          }
+                        }}
+                      />
+                      <span>Auto-sync quantity (+{batchSerials.length} UNITS)</span>
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={handleOpenContinuousCameraScanner}
+                      className="btn btn-outline"
+                      style={{ fontSize: '0.78rem', padding: '5px 12px', minHeight: 34, gap: 5, color: '#0056B3', borderColor: '#0056B3' }}
+                      title="Keep scanning devices one after another with your camera"
+                    >
+                      <Scan size={14} />
+                      <span>Continuous Camera Scan</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowBulkPasteArea(!showBulkPasteArea)}
+                      className="btn btn-outline"
+                      style={{ fontSize: '0.78rem', padding: '5px 12px', minHeight: 34, gap: 5 }}
+                      title="Paste 100 serials from Excel or text file"
+                    >
+                      <UploadCloud size={14} />
+                      <span>{showBulkPasteArea ? 'Close Paste Area' : 'Paste Multi-line (e.g. 100 S/N)'}</span>
+                    </button>
+
+                    {batchSerials.length > 0 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleExportBatchSerials}
+                          className="btn btn-outline"
+                          style={{ fontSize: '0.78rem', padding: '5px 10px', minHeight: 34, gap: 4 }}
+                          title="Export list of scanned serials to CSV"
+                        >
+                          <Download size={13} />
+                          <span>Export CSV</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleClearAllBatchSerials}
+                          className="btn btn-outline"
+                          style={{ fontSize: '0.78rem', padding: '5px 10px', minHeight: 34, gap: 4, color: '#DC2626', borderColor: '#FECACA' }}
+                          title="Clear all serials in this batch"
+                        >
+                          <RotateCcw size={13} />
+                          <span>Clear All</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Multi-line Paste Box for receiving 100 devices at once */}
+                {showBulkPasteArea && (
+                  <div
+                    style={{
+                      padding: 12,
+                      backgroundColor: '#F8FAFC',
+                      border: '1px dashed #0056B3',
+                      borderRadius: 6,
+                      marginBottom: 12,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0F172A' }}>
+                        Paste Serial Numbers (One per line, comma or tab-separated from Excel / Manifest):
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                        Supports 100+ serials simultaneously
+                      </span>
+                    </div>
+                    <textarea
+                      rows={5}
+                      value={bulkPasteText}
+                      onChange={(e) => setBulkPasteText(e.target.value)}
+                      placeholder={`Example:\n2102312CHW10K0001\n2102312CHW10K0002\n2102312CHW10K0003\n...`}
+                      className="input-field mono"
+                      style={{ width: '100%', fontSize: '0.82rem', resize: 'vertical', lineHeight: 1.5 }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBulkPasteText('');
+                          setShowBulkPasteArea(false);
+                        }}
+                        className="btn btn-outline"
+                        style={{ fontSize: '0.78rem', padding: '4px 12px', minHeight: 32 }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleParseAndAddPastedSerials}
+                        disabled={!bulkPasteText.trim()}
+                        className="btn btn-primary"
+                        style={{ fontSize: '0.78rem', padding: '4px 16px', minHeight: 32, gap: 5 }}
+                      >
+                        <ListPlus size={14} />
+                        <span>Process &amp; Add Serials to Batch</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* High-speed Barcode Gun Input (Enter key adds instantly) */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                  <input
+                    type="text"
+                    value={bulkInputText}
+                    onChange={(e) => setBulkInputText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (bulkInputText.trim()) {
+                          handleAddBatchSerials([bulkInputText.trim()]);
+                          setBulkInputText('');
+                        }
+                      }
+                    }}
+                    placeholder="Scan with USB/Bluetooth barcode gun or enter S/N and press Enter..."
+                    className="input-field mono"
+                    style={{ fontWeight: 600, fontSize: '0.9rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (bulkInputText.trim()) {
+                        handleAddBatchSerials([bulkInputText.trim()]);
+                        setBulkInputText('');
+                      }
+                    }}
+                    disabled={!bulkInputText.trim()}
+                    className="btn btn-primary"
+                    style={{ minHeight: 44, padding: '0 16px', gap: 6, fontWeight: 700 }}
+                  >
+                    <Plus size={16} />
+                    <span>Add</span>
+                  </button>
+                </div>
+
+                {/* Duplicate Inventory Warning if any loaded serial exists already */}
+                {batchSerialsAlreadyInInventory.length > 0 && (
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#FEF3C7',
+                      border: '1px solid #FCD34D',
+                      borderRadius: 6,
+                      fontSize: '0.78rem',
+                      color: '#92400E',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+                    <span>
+                      Notice: <strong>{batchSerialsAlreadyInInventory.length}</strong> serial(s) in this batch (e.g.{' '}
+                      <code>{batchSerialsAlreadyInInventory.slice(0, 3).join(', ')}</code>) are already registered in current inventory. Re-receiving will increment tracking.
+                    </span>
+                  </div>
+                )}
+
+                {/* Scanned Serials List / Chips */}
+                {batchSerials.length > 0 ? (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>
+                        Batch Device Manifest ({batchSerials.length} units):
+                      </span>
+                      {batchSerials.length > 5 && (
+                        <input
+                          type="text"
+                          value={batchSearchQuery}
+                          onChange={(e) => setBatchSearchQuery(e.target.value)}
+                          placeholder="Search batch..."
+                          style={{
+                            padding: '2px 8px',
+                            fontSize: '0.75rem',
+                            border: '1px solid #CBD5E1',
+                            borderRadius: 4,
+                            width: 140,
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    <div
+                      style={{
+                        maxHeight: 220,
+                        overflowY: 'auto',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: 6,
+                        backgroundColor: '#F8FAFC',
+                      }}
+                    >
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: '#F1F5F9', borderBottom: '1px solid #CBD5E1', textAlign: 'left', color: '#475569' }}>
+                            <th style={{ padding: '6px 10px', width: 45 }}>#</th>
+                            <th style={{ padding: '6px 10px' }}>Serial Number</th>
+                            <th style={{ padding: '6px 10px' }}>Detected Brand</th>
+                            <th style={{ padding: '6px 10px', textAlign: 'right' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredBatchSerials.map((s, idx) => {
+                            const parsed = parseBarcode(s);
+                            const isSelectedForPreview = selectedPreviewSerial === s;
+                            return (
+                              <tr
+                                key={s + idx}
+                                style={{
+                                  borderBottom: '1px solid #E2E8F0',
+                                  backgroundColor: isSelectedForPreview ? '#EFF6FF' : 'transparent',
+                                  transition: 'background-color 0.15s ease',
+                                }}
+                              >
+                                <td style={{ padding: '6px 10px', color: '#64748B', fontWeight: 600 }}>{idx + 1}</td>
+                                <td style={{ padding: '6px 10px', fontFamily: 'monospace', fontWeight: 700, color: '#0F172A' }}>
+                                  {s}
+                                  {isSelectedForPreview && (
+                                    <span style={{ marginLeft: 6, fontSize: '0.7rem', color: '#0056B3', fontWeight: 800 }}>
+                                      [Viewing Specs]
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{ padding: '6px 10px' }}>
+                                  <span
+                                    style={{
+                                      padding: '2px 6px',
+                                      backgroundColor: '#E0E7FF',
+                                      color: '#3730A3',
+                                      borderRadius: 4,
+                                      fontWeight: 600,
+                                      fontSize: '0.72rem',
+                                    }}
+                                  >
+                                    {parsed.detectedBrand || 'Standard CPE'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '6px 10px', textAlign: 'right' }}>
+                                  <div style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedPreviewSerial(isSelectedForPreview ? null : s)}
+                                      className="btn btn-outline"
+                                      style={{ padding: '2px 6px', minHeight: 24, fontSize: '0.72rem', gap: 3 }}
+                                      title="Inspect full device specs below"
+                                    >
+                                      <Eye size={12} />
+                                      <span>{isSelectedForPreview ? 'Close' : 'Details'}</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopySerial(s)}
+                                      className="btn btn-outline"
+                                      style={{ padding: '2px 6px', minHeight: 24, fontSize: '0.72rem' }}
+                                      title="Copy Serial"
+                                    >
+                                      {copiedSerial === s ? <Check size={12} style={{ color: '#059669' }} /> : <Copy size={12} />}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveBatchSerial(s)}
+                                      style={{
+                                        border: 'none',
+                                        background: 'none',
+                                        cursor: 'pointer',
+                                        color: '#EF4444',
+                                        padding: '2px 4px',
+                                      }}
+                                      title="Remove from batch"
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: '16px',
+                      textAlign: 'center',
+                      backgroundColor: '#F8FAFC',
+                      border: '1px dashed #CBD5E1',
+                      borderRadius: 6,
+                      color: '#64748B',
+                      fontSize: '0.82rem',
+                    }}
+                  >
+                    No device serials added yet. Scan devices rapidly using a barcode gun, continuous camera scan, or paste a list of up to 100+ serials above.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* LIVE DEVICE INFORMATION & SPECIFICATIONS CARD (WHEN A DEVICE IS SCANNED / SELECTED) */}
+            {activeSerial && (
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: '14px 16px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1.5px solid #0056B3',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: '0 4px 12px rgba(0, 86, 179, 0.08)',
+                }}
+              >
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #E2E8F0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 6,
+                        backgroundColor: '#EFF6FF',
+                        color: '#0056B3',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Cpu size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>Scanned Device Telemetry &amp; Specs</span>
+                        <span
+                          style={{
+                            padding: '2px 8px',
+                            backgroundColor: '#0056B3',
+                            color: '#FFFFFF',
+                            borderRadius: 12,
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          Verified
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                        Serial:{' '}
+                        <code style={{ fontWeight: 800, color: '#0056B3', fontSize: '0.82rem' }}>
+                          {activeSerial}
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => handleCopySerial(activeSerial)}
+                      className="btn btn-outline"
+                      style={{ fontSize: '0.75rem', padding: '4px 10px', minHeight: 28, gap: 4 }}
+                    >
+                      {copiedSerial === activeSerial ? (
+                        <>
+                          <Check size={12} style={{ color: '#059669' }} />
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={12} />
+                          <span>Copy S/N</span>
+                        </>
+                      )}
+                    </button>
+                    {serialIntakeMode === 'BULK' && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPreviewSerial(null)}
+                        className="btn btn-outline"
+                        style={{ fontSize: '0.75rem', padding: '4px 8px', minHeight: 28 }}
+                        title="Close preview"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Device Specifications Grid */}
+                {existingInStock && (
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#FEF2F2',
+                      border: '1.5px solid #EF4444',
+                      borderRadius: 6,
+                      fontSize: '0.82rem',
+                      color: '#991B1B',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      marginBottom: 10,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+                    <span>
+                      ⚠️ DUPLICATE SERIAL DETECTED: This serial is already registered in stock under{' '}
+                      <u>{existingInStock.materialCode} &mdash; {existingInStock.description}</u>!
+                    </span>
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: 10,
+                    marginBottom: 10,
+                  }}
+                >
+                  <div style={{ padding: '8px 10px', backgroundColor: '#F8FAFC', borderRadius: 6, border: '1px solid #E2E8F0', gridColumn: 'span 2' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Target Stock Product &amp; Description</div>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0F172A', marginTop: 2 }}>
+                      {selectedItem ? `${selectedItem.materialCode} — ${selectedItem.description}` : 'Product Not Selected'}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '8px 10px', backgroundColor: '#F8FAFC', borderRadius: 6, border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Warehouse Category</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A', marginTop: 2 }}>
+                      {targetCategory}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '8px 10px', backgroundColor: '#F8FAFC', borderRadius: 6, border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Inbound Locator</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0056B3', fontFamily: 'monospace', marginTop: 2 }}>
+                      {locatorId || 'DEFAULT-BIN'}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '8px 10px', backgroundColor: '#F8FAFC', borderRadius: 6, border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Hardware MAC / Identifier</div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, fontFamily: 'monospace', color: '#334155', marginTop: 2 }}>
+                      {parsedActive?.macAddress || 'N/A (Standard)'}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '8px 10px', backgroundColor: '#F8FAFC', borderRadius: 6, border: '1px solid #E2E8F0' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Current Warehouse Status</div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, marginTop: 2, color: existingInStock ? '#DC2626' : '#15803D' }}>
+                      {existingInStock
+                        ? `Already in stock at ${existingInStock.binLocation || 'Bin'} (Qty: ${existingInStock.quantity})`
+                        : `Fresh Inbound &rarr; Receiving to ${locatorId || 'Selected Locator'}`}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Auto-Match helper if the scanned serial belongs to a catalog item different from current selection */}
+                {matchActive?.item && matchActive.item.id !== selectedItemId && (
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      backgroundColor: '#EFF6FF',
+                      border: '1px solid #BFDBFE',
+                      borderRadius: 6,
+                      fontSize: '0.8rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ color: '#1E40AF' }}>
+                      Barcode matches product catalog:{' '}
+                      <strong>{matchActive.item.materialCode} - {matchActive.item.description}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (matchActive.item) {
+                          if (matchActive.item.subCategory === 'TCOPNC' || matchActive.item.subCategory === 'TC-OPCDR') {
+                            setTargetCategory(matchActive.item.subCategory);
+                          }
+                          setSelectedItemId(matchActive.item.id);
+                          setUnit(matchActive.item.unit);
+                        }
+                      }}
+                      className="btn btn-primary"
+                      style={{ fontSize: '0.72rem', padding: '3px 10px', minHeight: 26 }}
+                    >
+                      Select This Product
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Logistics Notes */}
+            <div style={{ marginTop: 14 }}>
+              <label className="input-label" style={{ fontWeight: 700 }}>
+                Logistics Dispatch Notes / Container Reference:
+              </label>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="e.g. Received via Colombo Central Logistics Hub Container #14"
                 className="input-field"
+                style={{ fontSize: '0.88rem' }}
               />
             </div>
           </div>
@@ -1168,7 +2016,29 @@ export const WorkflowDispatchReceive: React.FC<WorkflowDispatchReceiveProps> = (
                           </span>
                         </td>
                         <td>
-                          {tx.serialNumber ? (
+                          {tx.serialNumbers && tx.serialNumbers.length > 0 ? (
+                            <div>
+                              <span
+                                style={{
+                                  fontFamily: 'var(--font-mono)',
+                                  fontWeight: 800,
+                                  fontSize: '0.75rem',
+                                  color: '#0056B3',
+                                  backgroundColor: '#EFF6FF',
+                                  padding: '2px 8px',
+                                  borderRadius: 12,
+                                  border: '1px solid #BFDBFE',
+                                  display: 'inline-block',
+                                }}
+                                title={tx.serialNumbers.join('\n')}
+                              >
+                                {tx.serialNumbers.length} Bulk Serials
+                              </span>
+                              <div style={{ fontSize: '0.7rem', color: '#64748B', fontFamily: 'var(--font-mono)', marginTop: 2, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={tx.serialNumbers.join(', ')}>
+                                {tx.serialNumbers.slice(0, 2).join(', ')}{tx.serialNumbers.length > 2 ? ` +${tx.serialNumbers.length - 2} more` : ''}
+                              </div>
+                            </div>
+                          ) : tx.serialNumber ? (
                             <span
                               style={{
                                 fontFamily: 'var(--font-mono)',
@@ -1185,7 +2055,7 @@ export const WorkflowDispatchReceive: React.FC<WorkflowDispatchReceiveProps> = (
                             </span>
                           ) : (
                             <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic' }}>
-                              Bulk / Non-serialized
+                              Non-serialized
                             </span>
                           )}
                         </td>

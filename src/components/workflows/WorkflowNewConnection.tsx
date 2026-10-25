@@ -1073,22 +1073,77 @@ export const WorkflowNewConnection: React.FC<WorkflowNewConnectionProps> = ({
                 badgeColor: item.quantity > 0 ? '#15803D' : '#DC2626',
               }))}
             />
+
+            {/* Exact Device Identified Banner */}
+            {selectedItem && (
+              <div
+                style={{
+                  marginTop: 8,
+                  padding: '8px 12px',
+                  backgroundColor: '#F0FDF4',
+                  border: '1px solid #86EFAC',
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <CheckCircle2 size={16} color="#16A34A" style={{ flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#15803D' }}>
+                      Exact Device: {selectedItem.materialCode} &mdash; {selectedItem.description}
+                    </div>
+                    {serialNumber && (
+                      <div style={{ fontSize: '0.74rem', color: '#166534', marginTop: 1 }}>
+                        Linked Serial: <strong style={{ fontFamily: 'var(--font-mono)' }}>{serialNumber}</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <span
+                  style={{
+                    padding: '2px 8px',
+                    backgroundColor: '#16A34A',
+                    color: '#FFFFFF',
+                    borderRadius: 10,
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {selectedItem.quantity > 0 ? `${selectedItem.quantity} In Stock` : 'Out of Stock'}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* STEP 2: Serial Number (OPTIONAL) */}
+          {/* STEP 2: Serial Number (Single Device Issuance Only) */}
           <div className="input-group">
             <label className="input-label">
               <span style={{ fontWeight: 800, color: 'var(--slt-deep-blue)' }}>Step 2: Device Serial Number (S/N)</span>
               <span style={{ color: '#059669', fontWeight: 700, fontSize: '0.78rem' }}>
-                Scan ANY barcode to extract S/N • All equipment &amp; models supported
+                Single Device Scan • Auto-Identifies Exact Product
               </span>
             </label>
             <div style={{ display: 'flex', gap: 6 }}>
               <input
                 type="text"
                 value={serialNumber}
-                onChange={(e) => setSerialNumber(e.target.value)}
-                placeholder="Scan or enter S/N (e.g. SLT-ONT-TD64-A01, 4857..., or leave empty)"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSerialNumber(val);
+                  if (val.trim()) {
+                    const clean = extractSerialNumber(val).trim();
+                    const match = findEquipmentByBarcode(clean, inventory);
+                    if (match.item) {
+                      setSelectedItemId(match.item.id);
+                      setValidationError(null);
+                    }
+                  }
+                }}
+                placeholder="Scan or enter device S/N (e.g. 2102312CHW10K0001)"
                 className="input-field mono"
                 style={{ fontWeight: 700 }}
               />
@@ -1096,61 +1151,49 @@ export const WorkflowNewConnection: React.FC<WorkflowNewConnectionProps> = ({
                 type="button"
                 onClick={() =>
                   onOpenScanner(
-                    'Scan Any Barcode to Extract Serial Number',
-                    (scanned, allScanned) => {
-                      const clean = extractSerialNumber(scanned);
+                    'Scan Device Serial Number to Identify Product',
+                    (scanned) => {
+                      const clean = extractSerialNumber(scanned).trim();
                       setSerialNumber(clean);
-                      if (allScanned && allScanned.length > 1) {
-                        setIssueQuantity(allScanned.length);
+
+                      // 1. Check if this serial is already issued to an active customer
+                      const issuances = storageService.getCustomerIssuances();
+                      const existing = issuances.find(
+                        (i) => i.serialNumber && i.serialNumber.trim().toLowerCase() === clean.toLowerCase() && i.status === 'ACTIVE'
+                      );
+                      if (existing) {
+                        setDuplicateWarning({
+                          isOpen: true,
+                          type: 'SERIAL',
+                          value: clean,
+                          existingRecord: existing,
+                        });
+                        return;
                       }
+
+                      // 2. Exact match in stock inventory
                       const match = findEquipmentByBarcode(clean, inventory);
                       if (match.item) {
                         setSelectedItemId(match.item.id);
+                        setValidationError(null);
+                      } else {
+                        setValidationError(`Device Serial Number "${clean}" is not found in warehouse stock. Please intake this device via Dispatch Intake first.`);
                       }
-                    }
+                    },
+                    false
                   )
                 }
                 className="btn btn-outline"
-                style={{ padding: '0 12px', minHeight: 48 }}
-                title="Scan Device Barcode to extract Serial Number"
+                style={{ padding: '0 14px', minHeight: 48, gap: 6, fontWeight: 700 }}
+                title="Scan Device Barcode / Serial Number"
               >
                 <QrCode size={18} />
+                <span>Scan Serial</span>
               </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-              <button
-                type="button"
-                onClick={() =>
-                  onOpenScanner(
-                    'Batch Scan All Barcodes into Allocation',
-                    (lastScanned, allScanned) => {
-                      if (allScanned && allScanned.length > 0) {
-                        setSerialNumber(allScanned[0]);
-                        setIssueQuantity(allScanned.length);
-                        const match = findEquipmentByBarcode(allScanned[0], inventory);
-                        if (match.item) {
-                          setSelectedItemId(match.item.id);
-                        }
-                      }
-                    },
-                    true
-                  )
-                }
-                className="btn btn-outline"
-                style={{
-                  fontSize: '0.74rem',
-                  padding: '3px 8px',
-                  height: 26,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  borderColor: '#CBD5E1',
-                }}
-              >
-                <Scan size={13} color="var(--slt-deep-blue)" />
-                <span>Continuous Multi-Device Barcode Scanner</span>
-              </button>
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+              Scanning or typing a serial number automatically detects and selects its exact stock equipment above.
             </div>
 
             {/* Quick-pick serial pills if serialized */}
